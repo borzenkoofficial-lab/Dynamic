@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Dynamic;
@@ -23,6 +24,7 @@ internal static class StartupDiagnostics
                     .AppendLine($"[{DateTimeOffset.Now:O}] Unhandled application error")
                     .AppendLine($"OS: {Environment.OSVersion}")
                     .AppendLine($"Runtime: {Environment.Version}");
+                AppendRestrictedErrorInfo(entry);
                 AppendException(entry, exception, 0);
                 entry.AppendLine(new string('-', 72));
                 File.AppendAllText(LogPath, entry.ToString(), Encoding.UTF8);
@@ -36,6 +38,38 @@ internal static class StartupDiagnostics
         return LogPath;
     }
 
+    private static void AppendRestrictedErrorInfo(StringBuilder output)
+    {
+        try
+        {
+            if (GetRestrictedErrorInfo(out var info) < 0 || info is null)
+                return;
+
+            if (info.GetErrorDetails(
+                    out var description,
+                    out var error,
+                    out var restrictedDescription,
+                    out var capabilitySid) >= 0)
+            {
+                output.AppendLine("WinRT restricted error information:");
+                output.AppendLine($"  Error: 0x{error:X8}");
+                if (!string.IsNullOrWhiteSpace(description))
+                    output.AppendLine($"  Description: {description}");
+                if (!string.IsNullOrWhiteSpace(restrictedDescription))
+                    output.AppendLine($"  Restricted description: {restrictedDescription}");
+                if (!string.IsNullOrWhiteSpace(capabilitySid))
+                    output.AppendLine($"  Capability SID: {capabilitySid}");
+            }
+
+            if (info.GetReference(out var reference) >= 0 && !string.IsNullOrWhiteSpace(reference))
+                output.AppendLine($"  Reference: {reference}");
+        }
+        catch (Exception diagnosticException)
+        {
+            output.AppendLine($"WinRT error details unavailable: {diagnosticException.GetType().Name}: {diagnosticException.Message}");
+        }
+    }
+
     private static void AppendException(StringBuilder output, Exception exception, int depth)
     {
         var indent = new string(' ', depth * 2);
@@ -43,8 +77,6 @@ internal static class StartupDiagnostics
         output.AppendLine($"{indent}HResult: 0x{exception.HResult:X8}");
         output.AppendLine($"{indent}Details: {exception}");
 
-        // XamlParseException exposes source coordinates on some Windows App SDK versions.
-        // Read them reflectively so diagnostics remain compatible across SDK versions.
         AppendProperty(output, exception, "LineNumber", indent);
         AppendProperty(output, exception, "LinePosition", indent);
         AppendProperty(output, exception, "BaseUri", indent);
@@ -70,5 +102,24 @@ internal static class StartupDiagnostics
         {
             // Optional diagnostic metadata is not guaranteed by every XAML runtime.
         }
+    }
+
+    [DllImport("combase.dll", ExactSpelling = true)]
+    private static extern int GetRestrictedErrorInfo(out IRestrictedErrorInfo? errorInfo);
+
+    [ComImport]
+    [Guid("82BA7092-4C88-427D-A7BC-16DD93FEB67E")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IRestrictedErrorInfo
+    {
+        [PreserveSig]
+        int GetErrorDetails(
+            [MarshalAs(UnmanagedType.BStr)] out string description,
+            out int error,
+            [MarshalAs(UnmanagedType.BStr)] out string restrictedDescription,
+            [MarshalAs(UnmanagedType.BStr)] out string capabilitySid);
+
+        [PreserveSig]
+        int GetReference([MarshalAs(UnmanagedType.BStr)] out string reference);
     }
 }
