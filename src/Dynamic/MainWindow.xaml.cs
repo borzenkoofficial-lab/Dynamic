@@ -81,6 +81,10 @@ public sealed partial class MainWindow : Window
         Closed += OnWindowClosed;
         _ = _media.InitializeAsync();
 
+    }
+
+    public void InitializeOverlay()
+    {
         if (!ConfigureOverlayWindow())
             throw new InvalidOperationException("Dynamic could not initialize its overlay HWND.");
 
