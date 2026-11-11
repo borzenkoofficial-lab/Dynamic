@@ -69,6 +69,7 @@ public sealed partial class MainWindow : Window
         _isApplyingSettings = false;
         ExtendsContentIntoTitleBar = true;
         SystemBackdrop = new DesktopAcrylicBackdrop();
+        _motion.AttachDynamicLighting(Capsule);
         Capsule.PointerPressed += OnCapsulePointerPressed;
         Capsule.PointerEntered += OnCapsulePointerEntered;
         Capsule.PointerMoved += OnCapsulePointerMoved;
@@ -158,6 +159,7 @@ public sealed partial class MainWindow : Window
     private void OnCapsulePointerExited(object sender, PointerRoutedEventArgs args)
     {
         PointerHighlight.Center = new Windows.Foundation.Point(0.5, 0.5);
+        _motion.UpdateDynamicLight(new Vector2((float)(Capsule.ActualWidth * 0.5), 0));
         _motion.FadeOpacity(HighlightLayer, 0.0f, 260);
         _motion.FadeOpacity(EdgeGlow, 0.42f, 320);
     }
@@ -170,6 +172,7 @@ public sealed partial class MainWindow : Window
         PointerHighlight.Center = new Windows.Foundation.Point(
             Math.Clamp(point.X / width, 0.0, 1.0),
             Math.Clamp(point.Y / height, 0.0, 1.0));
+        _motion.UpdateDynamicLight(new Vector2((float)point.X, (float)point.Y));
         HighlightLayer.Opacity = 0.92;
         EdgeGlow.Opacity = 0.92;
     }
@@ -410,7 +413,7 @@ public sealed partial class MainWindow : Window
         NotificationTitle.Text = title;
         NotificationMessage.Text = message;
         NotificationToast.Visibility = Visibility.Visible;
-        _motion.FadeOpacity(NotificationToast, 1.0f, 180);
+        _motion.Reveal(NotificationToast, 1.0f, 200);
         _toastTimer ??= _dispatcherQueue.CreateTimer();
         _toastTimer.IsRepeating = false;
         _toastTimer.Tick -= OnToastTimerTick;
@@ -462,6 +465,7 @@ public sealed partial class MainWindow : Window
         _media.Changed -= OnMediaChanged;
         _progress.Changed -= OnProgressChanged;
         _media.Dispose();
+        _motion.DisposeLighting();
     }
 
     private void OnCapsulePointerPressed(object sender, PointerRoutedEventArgs args)
