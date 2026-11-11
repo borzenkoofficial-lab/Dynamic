@@ -72,7 +72,6 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SystemBackdrop = new DesktopAcrylicBackdrop();
         _motion.AttachDynamicLighting(Capsule);
-        _motion.AttachDynamicLighting(Capsule);
         Capsule.PointerPressed += OnCapsulePointerPressed;
         Capsule.PointerEntered += OnCapsulePointerEntered;
         Capsule.PointerMoved += OnCapsulePointerMoved;
@@ -208,7 +207,6 @@ public sealed partial class MainWindow : Window
     {
         PointerHighlight.Center = new Windows.Foundation.Point(0.5, 0.5);
         _motion.UpdateDynamicLight(new Vector2((float)(Capsule.ActualWidth * 0.5), 0));
-        _motion.UpdateDynamicLight(new Vector2((float)(Capsule.ActualWidth * 0.5), 0));
         _motion.FadeOpacity(HighlightLayer, 0.0f, 260);
         _motion.FadeOpacity(EdgeGlow, 0.42f, 320);
     }
@@ -221,7 +219,6 @@ public sealed partial class MainWindow : Window
         PointerHighlight.Center = new Windows.Foundation.Point(
             Math.Clamp(point.X / width, 0.0, 1.0),
             Math.Clamp(point.Y / height, 0.0, 1.0));
-        _motion.UpdateDynamicLight(new Vector2((float)point.X, (float)point.Y));
         _motion.UpdateDynamicLight(new Vector2((float)point.X, (float)point.Y));
         HighlightLayer.Opacity = 0.92;
         EdgeGlow.Opacity = 0.92;
@@ -297,7 +294,7 @@ public sealed partial class MainWindow : Window
         if (_visualizerActive == active) return;
         _visualizerActive = active;
         MediaVisualizer.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
-        _motion.SetVisualizer(new UIElement[]
+        _motion.SetVisualizer(new FrameworkElement[]
         {
             VisualizerBar1, VisualizerBar2, VisualizerBar3, VisualizerBar4, VisualizerBar5
         }, active);
@@ -516,7 +513,6 @@ public sealed partial class MainWindow : Window
         _progress.Changed -= OnProgressChanged;
         _media.Dispose();
         _transfers.Dispose();
-        _motion.DisposeLighting();
         _motion.DisposeLighting();
     }
 
