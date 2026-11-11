@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Windows.Foundation;
 using Dynamic.Core;
 using Dynamic.Services;
 using Microsoft.UI.Dispatching;
@@ -34,11 +35,13 @@ public sealed partial class MainWindow : Window
     private DispatcherQueueTimer? _geometryTimer;
     private DispatcherQueueTimer? _uiTimer;
     private DispatcherQueueTimer? _toastTimer;
+    private DispatcherQueueTimer? _toastHideTimer;
     private readonly Stopwatch _geometryClock = new();
     private readonly Stopwatch _mediaClock = new();
     private NativeRect _geometryFrom;
     private WindowGeometry _geometryTarget;
     private int _currentRadius = 38;
+    private int _geometryFromRadius = 38;
     private MediaSessionSnapshot? _mediaSnapshot;
     private string? _loadedArtworkKey;
     private string? _lastCompletedActivity;
@@ -343,11 +346,19 @@ public sealed partial class MainWindow : Window
     {
         _toastTimer?.Stop();
         _motion.FadeOpacity(NotificationToast, 0.0f, 220);
-        var hideTimer = _dispatcherQueue.CreateTimer();
-        hideTimer.IsRepeating = false;
-        hideTimer.Interval = TimeSpan.FromMilliseconds(240);
-        hideTimer.Tick += (_, _) => { hideTimer.Stop(); NotificationToast.Visibility = Visibility.Collapsed; };
-        hideTimer.Start();
+        _toastHideTimer ??= _dispatcherQueue.CreateTimer();
+        _toastHideTimer.IsRepeating = false;
+        _toastHideTimer.Stop();
+        _toastHideTimer.Interval = TimeSpan.FromMilliseconds(240);
+        _toastHideTimer.Tick -= OnToastHideTimerTick;
+        _toastHideTimer.Tick += OnToastHideTimerTick;
+        _toastHideTimer.Start();
+    }
+
+    private void OnToastHideTimerTick(DispatcherQueueTimer sender, object args)
+    {
+        _toastHideTimer?.Stop();
+        NotificationToast.Visibility = Visibility.Collapsed;
     }
 
     private async void OnPlayPauseClick(object sender, RoutedEventArgs args)
@@ -368,6 +379,7 @@ public sealed partial class MainWindow : Window
         StopTimer(_geometryTimer, OnGeometryTick);
         StopTimer(_uiTimer, OnUiClockTick);
         if (_toastTimer is not null) _toastTimer.Stop();
+        if (_toastHideTimer is not null) _toastHideTimer.Stop();
         _media.Changed -= OnMediaChanged;
         _progress.Changed -= OnProgressChanged;
         _media.Dispose();
@@ -413,6 +425,7 @@ public sealed partial class MainWindow : Window
     {
         if (_hwnd == IntPtr.Zero || !GetWindowRect(_hwnd, out var current)) return false;
         _geometryFrom = current;
+        _geometryFromRadius = _currentRadius;
         _geometryTarget = CalculateTargetGeometry(expanded);
         _geometryClock.Restart();
         _geometryTimer ??= _dispatcherQueue.CreateTimer();
@@ -446,7 +459,7 @@ public sealed partial class MainWindow : Window
             Lerp(_geometryFrom.Top, _geometryTarget.Y, eased),
             Lerp(_geometryFrom.Right - _geometryFrom.Left, _geometryTarget.Width, eased),
             Lerp(_geometryFrom.Bottom - _geometryFrom.Top, _geometryTarget.Height, eased),
-            Lerp(_currentRadius, _geometryTarget.Radius, eased));
+            Lerp(_geometryFromRadius, _geometryTarget.Radius, eased));
         if (!ApplyWindowGeometry(geometry))
         {
             _geometryTimer?.Stop();
