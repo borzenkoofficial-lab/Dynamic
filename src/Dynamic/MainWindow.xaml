@@ -87,36 +87,98 @@
                             CornerRadius="14" Padding="14,7" />
                 </Grid>
 
-                <Border x:Name="MediaCard" Padding="16" Background="#252B34" CornerRadius="20"
-                        BorderBrush="#28FFFFFF" BorderThickness="1">
-                    <Grid ColumnSpacing="12">
+                <Border x:Name="MediaCard" Padding="15" Background="#252B34" CornerRadius="20"
+                        BorderBrush="#35FFFFFF" BorderThickness="1">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="54" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="MediaArtwork" Width="54" Height="54" CornerRadius="14"
+                                    Background="#3B414D" BorderBrush="#55FFFFFF" BorderThickness="1" Clip="True">
+                                <Grid>
+                                    <TextBlock x:Name="MediaArtworkGlyph" Text="♫" Foreground="#B7F36B"
+                                               FontSize="27" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Image x:Name="MediaArtworkImage" Stretch="UniformToFill" Visibility="Collapsed" />
+                                </Grid>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                <TextBlock Text="СЕЙЧАС ИГРАЕТ" Foreground="#8F9AA8" FontSize="9" CharacterSpacing="100" />
+                                <TextBlock x:Name="MediaTitle" Text="Медиа не обнаружено" Foreground="#F7F8FA"
+                                           FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="MediaArtist" Text="Запустите музыку в поддерживаемом приложении"
+                                           Foreground="#AEB6C2" FontSize="11" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                <Button x:Name="PlayPauseButton" Content="▶" Click="OnPlayPauseClick"
+                                        Background="#3B4652" Foreground="#F7F8FA" BorderThickness="0"
+                                        CornerRadius="15" Width="38" Height="38" IsEnabled="False" />
+                                <Button x:Name="NextButton" Content="»" Click="OnNextClick"
+                                        Background="#3B4652" Foreground="#F7F8FA" BorderThickness="0"
+                                        CornerRadius="15" Width="38" Height="38" IsEnabled="False" />
+                            </StackPanel>
+                        </Grid>
+                        <ProgressBar x:Name="MediaProgress" Minimum="0" Maximum="1" Value="0"
+                                     Height="3" Background="#45505D" Foreground="#B7F36B" />
+                        <Grid>
+                            <TextBlock x:Name="MediaElapsedText" Text="0:00" Foreground="#8F9AA8" FontSize="10" />
+                            <TextBlock x:Name="MediaDurationText" Text="--:--" Foreground="#8F9AA8"
+                                       FontSize="10" HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <Border x:Name="TimerCard" Padding="15" Background="#252B34" CornerRadius="20"
+                        BorderBrush="#35FFFFFF" BorderThickness="1">
+                    <Grid ColumnSpacing="14">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="48" />
+                            <ColumnDefinition Width="64" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Border x:Name="MediaArtwork" Width="48" Height="48" CornerRadius="13" Background="#3B414D"
-                                BorderBrush="#55FFFFFF" BorderThickness="1">
-                            <TextBlock Text="♫" Foreground="#B7F36B" FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
+                        <Grid Width="58" Height="58">
+                            <Ellipse Stroke="#46515E" StrokeThickness="4" />
+                            <Path x:Name="TimerRingProgress" Stroke="#B7F36B" StrokeThickness="4"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                            <TextBlock x:Name="TimerRingLabel" Text="05:00" Foreground="#F7F8FA"
+                                       FontSize="10" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                            <TextBlock Text="СЕЙЧАС ИГРАЕТ" Foreground="#8F9AA8" FontSize="9" CharacterSpacing="100" />
-                            <TextBlock x:Name="MediaTitle" Text="Медиа не обнаружено" Foreground="#F7F8FA" FontSize="14"
-                                       FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                            <TextBlock x:Name="MediaArtist" Text="Запустите музыку в поддерживаемом приложении"
-                                       Foreground="#AEB6C2" FontSize="11" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="ТАЙМЕР" Foreground="#8F9AA8" FontSize="9" CharacterSpacing="100" />
+                            <TextBlock x:Name="TimerStatusText" Text="Готов к запуску" Foreground="#F7F8FA"
+                                       FontSize="14" FontWeight="SemiBold" />
+                            <TextBlock Text="Локальный обратный отсчёт" Foreground="#AEB6C2" FontSize="11" />
                         </StackPanel>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
-                            <Button x:Name="PlayPauseButton" Content="▶" Click="OnPlayPauseClick"
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="5">
+                            <Button x:Name="TimerStartButton" Content="Старт" Click="OnTimerStartClick"
+                                    Background="#B7F36B" Foreground="#151A16" BorderThickness="0"
+                                    CornerRadius="12" Padding="11,8" />
+                            <Button x:Name="TimerResetButton" Content="↺" Click="OnTimerResetClick"
                                     Background="#3B4652" Foreground="#F7F8FA" BorderThickness="0"
-                                    CornerRadius="15" Width="38" Height="38" IsEnabled="False" />
-                            <Button x:Name="NextButton" Content="»" Click="OnNextClick"
-                                    Background="#3B4652" Foreground="#F7F8FA" BorderThickness="0"
-                                    CornerRadius="15" Width="38" Height="38" IsEnabled="False" />
+                                    CornerRadius="12" Width="34" Height="34" />
                         </StackPanel>
                     </Grid>
                 </Border>
-
+                <Border x:Name="ProgressCard" Padding="15" Background="#252B34" CornerRadius="20"
+                        BorderBrush="#35FFFFFF" BorderThickness="1" Visibility="Collapsed">
+                    <StackPanel Spacing="8">
+                        <Grid>
+                            <TextBlock x:Name="ActivityTitle" Text="ВЫПОЛНЯЕТСЯ" Foreground="#8F9AA8"
+                                       FontSize="9" CharacterSpacing="100" />
+                            <TextBlock x:Name="ActivityPercent" Text="0%" Foreground="#F7F8FA"
+                                       FontSize="12" HorizontalAlignment="Right" />
+                        </Grid>
+                        <ProgressBar x:Name="ActivityProgress" Minimum="0" Maximum="100" Value="0"
+                                     Height="5" Background="#45505D" Foreground="#B7F36B" />
+                        <Grid>
+                            <TextBlock x:Name="ActivityDetail" Text="" Foreground="#AEB6C2" FontSize="10" />
+                            <TextBlock x:Name="ActivitySpeed" Text="" Foreground="#AEB6C2" FontSize="10"
+                                       HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
                 <Border Height="1" Background="#30FFFFFF" />
                 <Grid ColumnSpacing="10">
                     <Grid.ColumnDefinitions>
@@ -141,6 +203,22 @@
                 <TextBlock Text="Управление медиа получает данные напрямую из активной системной сессии Windows."
                            Foreground="#8F9AA8" FontSize="11" TextWrapping="Wrap" />
             </StackPanel>
+        </Border>
+        <Border x:Name="NotificationToast" Visibility="Collapsed" Opacity="0"
+                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,96,0,0"
+                Padding="15,12" Width="340" Background="#F020252D"
+                BorderBrush="#80FFFFFF" BorderThickness="1" CornerRadius="18">
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <TextBlock Text="◉" Foreground="#B7F36B" FontSize="18"
+                           VerticalAlignment="Center" HorizontalAlignment="Center" />
+                <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock x:Name="NotificationTitle" Text="Dynamic" Foreground="#F7F8FA"
+                               FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock x:Name="NotificationMessage" Text="" Foreground="#C4CAD3"
+                               FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>
