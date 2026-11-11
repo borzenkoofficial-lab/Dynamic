@@ -42,7 +42,7 @@ public sealed partial class MainWindow : Window
     private readonly Stopwatch _geometryClock = new();
     private readonly Stopwatch _mediaClock = new();
     private NativeRect _geometryFrom;
-    private WindowGeometry _geometryTarget;
+    private WindowGeometryFrame _geometryTarget;
     private int _currentRadius = 38;
     private int _geometryFromRadius = 38;
     private MediaSessionSnapshot? _mediaSnapshot;
@@ -528,25 +528,22 @@ public sealed partial class MainWindow : Window
     {
         var display = DisplayArea.GetFromWindowId(
             Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hwnd), DisplayAreaFallback.Primary);
-        var width = (int)Math.Round((expanded ? 520 : 390) * _scale);
-        var height = (int)Math.Round((expanded ? 620 : 76) * _scale);
         var work = display.WorkArea;
-        return new WindowGeometry(work.X + (work.Width - width) / 2,
-            work.Y + (int)Math.Round(8 * _scale), width, height,
-            (int)Math.Round((expanded ? 30 : 38) * _scale));
+        var dpi = GetDpiForWindow(_hwnd);
+        _scale = dpi == 0 ? 1.0 : dpi / 96.0;
+        return WindowGeometryMath.Calculate(work.X, work.Y, work.Width, dpi, expanded);
     }
 
     private void OnGeometryTick(DispatcherQueueTimer sender, object args)
     {
         const double duration = 0.38;
-        var t = Math.Clamp(_geometryClock.Elapsed.TotalSeconds / duration, 0, 1);
-        var eased = t >= 1 ? 1 : 1 - Math.Exp(-7.5 * t) * (Math.Cos(8 * t) + 0.9 * Math.Sin(8 * t));
-        var geometry = new WindowGeometry(
-            Lerp(_geometryFrom.Left, _geometryTarget.X, eased),
-            Lerp(_geometryFrom.Top, _geometryTarget.Y, eased),
-            Lerp(_geometryFrom.Right - _geometryFrom.Left, _geometryTarget.Width, eased),
-            Lerp(_geometryFrom.Bottom - _geometryFrom.Top, _geometryTarget.Height, eased),
-            Lerp(_geometryFromRadius, _geometryTarget.Radius, eased));
+        var elapsed = _geometryClock.Elapsed.TotalSeconds;
+        var t = Math.Clamp(elapsed / duration, 0, 1);
+        var from = new WindowGeometryFrame(_geometryFrom.Left, _geometryFrom.Top,
+            _geometryFrom.Right - _geometryFrom.Left, _geometryFrom.Bottom - _geometryFrom.Top,
+            _geometryFromRadius);
+        var geometry = WindowGeometryMath.Interpolate(from, _geometryTarget,
+            WindowGeometryMath.SpringProgress(elapsed, duration));
         if (!ApplyWindowGeometry(geometry))
         {
             _geometryTimer?.Stop();
@@ -572,9 +569,6 @@ public sealed partial class MainWindow : Window
             if (ProgressCard.Visibility == Visibility.Visible) _motion.Reveal(ProgressCard, 1.0f, 440);
         }
     }
-
-    private static int Lerp(int from, int to, double amount) =>
-        (int)Math.Round(from + (to - from) * amount);
 
     private static void StopTimer(DispatcherQueueTimer? timer, TypedEventHandler<DispatcherQueueTimer, object> handler)
     {
@@ -616,13 +610,10 @@ public sealed partial class MainWindow : Window
             Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hwnd),
             DisplayAreaFallback.Primary);
 
-        var width = (int)Math.Round((expanded ? 520 : 390) * _scale);
-        var height = (int)Math.Round((expanded ? 620 : 76) * _scale);
         var work = display.WorkArea;
-        var x = work.X + (work.Width - width) / 2;
-        var y = work.Y + (int)Math.Round(8 * _scale);
-        var radius = (int)Math.Round((expanded ? 30 : 38) * _scale);
-        return ApplyWindowGeometry(new WindowGeometry(x, y, width, height, radius));
+        var dpi = GetDpiForWindow(_hwnd);
+        _scale = dpi == 0 ? 1.0 : dpi / 96.0;
+        return ApplyWindowGeometry(WindowGeometryMath.Calculate(work.X, work.Y, work.Width, dpi, expanded));
     }
 
     private bool ApplyWindowGeometry(WindowGeometry geometry)
@@ -640,8 +631,6 @@ public sealed partial class MainWindow : Window
         _currentRadius = geometry.Radius;
         return true;
     }
-
-    private readonly record struct WindowGeometry(int X, int Y, int Width, int Height, int Radius);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint
