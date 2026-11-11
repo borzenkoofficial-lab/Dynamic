@@ -3,6 +3,7 @@ using Dynamic.Core;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using WinRT.Interop;
 
 namespace Dynamic;
@@ -22,6 +23,7 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
+        SystemBackdrop = new DesktopAcrylicBackdrop();
         Capsule.PointerPressed += OnCapsulePointerPressed;
 
         // Configure the HWND before it is shown to avoid activating a normal window first.
@@ -66,9 +68,21 @@ public sealed partial class MainWindow : Window
         var work = display.WorkArea;
         var x = work.X + (work.Width - width) / 2;
         var y = work.Y + (int)Math.Round(8 * scale);
+        if (!SetWindowPos(hwnd, HwndTopmost, x, y, width, height,
+            SwpNoActivate | SwpShowWindow))
+            return false;
 
-        return SetWindowPos(hwnd, HwndTopmost, x, y, width, height,
-            SwpNoActivate | SwpShowWindow);
+        var region = CreateRoundRectRgn(0, 0, width + 1, height + 1, height, height);
+        if (region == IntPtr.Zero)
+            return false;
+
+        if (SetWindowRgn(hwnd, region, true) == 0)
+        {
+            DeleteObject(region);
+            return false;
+        }
+
+        return true;
     }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
@@ -79,6 +93,16 @@ public sealed partial class MainWindow : Window
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint GetDpiForWindow(IntPtr hWnd);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    private static extern IntPtr CreateRoundRectRgn(int left, int top, int right, int bottom, int ellipseWidth, int ellipseHeight);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, [MarshalAs(UnmanagedType.Bool)] bool redraw);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DeleteObject(IntPtr hObject);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
