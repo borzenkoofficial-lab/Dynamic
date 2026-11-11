@@ -37,6 +37,10 @@ jobs:
       - name: Publish self-contained Windows x64 app
         run: dotnet publish src/Dynamic/Dynamic.csproj --configuration Release --runtime win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:DebugType=None -p:DebugSymbols=false --output artifacts/publish
 
+      - name: Verify real Windows startup
+        shell: pwsh
+        run: ./tools/Test-DynamicStartup.ps1 -ExecutablePath "artifacts/publish/Dynamic.exe"
+
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --yes --no-progress
