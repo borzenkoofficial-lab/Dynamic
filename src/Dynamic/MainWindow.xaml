@@ -250,6 +250,12 @@
                                 StepFrequency="0.01" ValueChanged="OnGlassOpacityChanged" />
                         <TextBlock Text="Настройка сохраняется на этом компьютере. Таймер продолжится после перезапуска приложения."
                                    Foreground="#AEB6C2" FontSize="10" TextWrapping="Wrap" />
+                        <Button Content="Подключить уведомления Windows" Click="OnNotificationPermissionClick"
+                                HorizontalAlignment="Left" Padding="11,7" CornerRadius="10"
+                                Background="#35404B" Foreground="#F7F8FA" BorderThickness="0" />
+                        <TextBlock x:Name="WindowsNotificationStatus"
+                                   Text="Источник уведомлений требует установки с идентификатором пакета Windows."
+                                   Foreground="#AEB6C2" FontSize="10" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
                 <TextBlock Text="Системные данные отображаются только при наличии доступного источника."
