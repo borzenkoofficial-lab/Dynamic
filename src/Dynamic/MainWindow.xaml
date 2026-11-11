@@ -10,7 +10,7 @@
             HorizontalAlignment="Stretch"
             VerticalAlignment="Top"
             Padding="18,10"
-            Background="#D90B0D11"
+            Background="Transparent"
             BorderBrush="#70FFFFFF"
             BorderThickness="1"
             CornerRadius="38"
@@ -18,14 +18,35 @@
             <Grid>
                 <Border x:Name="GlassBase" IsHitTestVisible="False" CornerRadius="38"
                         BorderThickness="1" BorderBrush="#A6FFFFFF"
-                        Background="#D90B0D11" />
+                        Background="#A30B0D11" />
                 <Border x:Name="TopSheen" IsHitTestVisible="False" CornerRadius="38"
-                        Margin="1" VerticalAlignment="Top" Height="34" Opacity="0.72">
+                        Margin="1" VerticalAlignment="Top" Height="34" Opacity="0.86">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                             <GradientStop Color="#42FFFFFF" Offset="0" />
                             <GradientStop Color="#12FFFFFF" Offset="0.55" />
                             <GradientStop Color="#00FFFFFF" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+                <Border x:Name="InnerReflection" IsHitTestVisible="False" CornerRadius="36"
+                        Margin="2" BorderThickness="1" Opacity="0.62">
+                    <Border.BorderBrush>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#65FFFFFF" Offset="0" />
+                            <GradientStop Color="#08FFFFFF" Offset="0.42" />
+                            <GradientStop Color="#24B7F36B" Offset="0.72" />
+                            <GradientStop Color="#48FFFFFF" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.BorderBrush>
+                </Border>
+                <Border x:Name="LowerRefraction" IsHitTestVisible="False" CornerRadius="36"
+                        Margin="2" Height="13" VerticalAlignment="Bottom" Opacity="0.55">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#00FFFFFF" Offset="0" />
+                            <GradientStop Color="#12FFFFFF" Offset="0.55" />
+                            <GradientStop Color="#20FFFFFF" Offset="1" />
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
