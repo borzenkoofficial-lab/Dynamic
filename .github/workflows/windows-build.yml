@@ -1,4 +1,4 @@
-name: Windows build
+name: Windows build and installer
 
 concurrency:
   group: dynamic-windows-${{ github.ref }}
@@ -11,16 +11,64 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  build-test-package:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Restore
+
+      - name: Restore app
         run: dotnet restore src/Dynamic/Dynamic.csproj
-      - name: Build
-        run: dotnet build src/Dynamic/Dynamic.csproj --configuration Release --no-restore
+
+      - name: Restore tests
+        run: dotnet restore tests/Dynamic.Tests/Dynamic.Tests.csproj
+
+      - name: Run tests
+        run: dotnet test tests/Dynamic.Tests/Dynamic.Tests.csproj --configuration Release --no-restore --logger "trx;LogFileName=dynamic-tests.trx"
+
+      - name: Publish self-contained Windows x64 app
+        run: dotnet publish src/Dynamic/Dynamic.csproj --configuration Release --runtime win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:DebugType=None -p:DebugSymbols=false --output artifacts/publish
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DAppVersion=0.1.${{ github.run_number }}" "/DPublishDir=artifacts\publish" "/DOutputDir=artifacts" installer\Dynamic.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dynamic-Setup-x64
+          path: artifacts/Dynamic-Setup-x64.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload portable publish folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dynamic-portable-x64
+          path: artifacts/publish/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dynamic-test-results
+          path: '**/dynamic-tests.trx'
+          if-no-files-found: ignore
+          retention-days: 14
