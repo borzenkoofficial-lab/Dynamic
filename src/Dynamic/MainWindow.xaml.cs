@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
 using Dynamic.Core;
+using Dynamic.Services;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
@@ -19,6 +21,8 @@ public sealed partial class MainWindow : Window
 
     private readonly CapsuleStateMachine _stateMachine = new();
     private readonly CapsuleMotionController _motion = new();
+    private readonly MediaSessionService _media = new();
+    private readonly DispatcherQueue _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
     private IntPtr _hwnd;
     private double _scale = 1.0;
 
@@ -28,9 +32,57 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SystemBackdrop = new DesktopAcrylicBackdrop();
         Capsule.PointerPressed += OnCapsulePointerPressed;
+        _media.Changed += OnMediaChanged;
+        Closed += OnWindowClosed;
+        _ = _media.InitializeAsync();
 
         if (!ConfigureOverlayWindow())
             throw new InvalidOperationException("Dynamic could not initialize its overlay HWND.");
+    }
+
+    private void OnMediaChanged(object? sender, EventArgs args)
+    {
+        _dispatcherQueue.TryEnqueue(UpdateMediaUi);
+    }
+
+    private void UpdateMediaUi()
+    {
+        var media = _media.Snapshot;
+        if (media is null)
+        {
+            CapsuleSubtitle.Text = "Рабочая капсула";
+            MediaTitle.Text = "Медиа не обнаружено";
+            MediaArtist.Text = "Запустите музыку в поддерживаемом приложении";
+            PlayPauseButton.Content = "▶";
+            PlayPauseButton.IsEnabled = false;
+            NextButton.IsEnabled = false;
+            return;
+        }
+
+        CapsuleSubtitle.Text = media.Title;
+        MediaTitle.Text = media.Title;
+        MediaArtist.Text = media.Artist;
+        PlayPauseButton.Content = media.IsPlaying ? "Ⅱ" : "▶";
+        PlayPauseButton.IsEnabled = media.CanTogglePlayback;
+        NextButton.IsEnabled = media.CanSkipNext;
+    }
+
+    private async void OnPlayPauseClick(object sender, RoutedEventArgs args)
+    {
+        PlayPauseButton.IsEnabled = false;
+        await _media.TogglePlaybackAsync();
+    }
+
+    private async void OnNextClick(object sender, RoutedEventArgs args)
+    {
+        NextButton.IsEnabled = false;
+        await _media.SkipNextAsync();
+    }
+
+    private void OnWindowClosed(object sender, WindowEventArgs args)
+    {
+        _media.Changed -= OnMediaChanged;
+        _media.Dispose();
     }
 
     private void OnCapsulePointerPressed(object sender, PointerRoutedEventArgs args)
@@ -99,7 +151,7 @@ public sealed partial class MainWindow : Window
             DisplayAreaFallback.Primary);
 
         var width = (int)Math.Round((expanded ? 520 : 390) * _scale);
-        var height = (int)Math.Round((expanded ? 236 : 76) * _scale);
+        var height = (int)Math.Round((expanded ? 420 : 76) * _scale);
         var topOffset = (int)Math.Round(8 * _scale);
         var work = display.WorkArea;
         var x = work.X + (work.Width - width) / 2;

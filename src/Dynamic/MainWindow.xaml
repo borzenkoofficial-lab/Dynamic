@@ -27,7 +27,8 @@
                 </Border>
                 <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center" Spacing="2">
                     <TextBlock Text="DYNAMIC" Foreground="#F7F8FA" FontSize="11" FontWeight="SemiBold" CharacterSpacing="150" />
-                    <TextBlock Text="Рабочая капсула" Foreground="#C4CAD3" FontSize="12" />
+                    <TextBlock x:Name="CapsuleSubtitle" Text="Рабочая капсула" Foreground="#C4CAD3" FontSize="12"
+                               TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <Ellipse Grid.Column="2" Width="7" Height="7" Fill="#B7F36B" VerticalAlignment="Center" Margin="12,0,2,0" />
             </Grid>
@@ -46,6 +47,35 @@
                             Click="OnCollapseClick" Background="#26313B" Foreground="#F7F8FA" BorderThickness="0"
                             CornerRadius="14" Padding="14,7" />
                 </Grid>
+
+                <Border x:Name="MediaCard" Padding="16" Background="#252B34" CornerRadius="20">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="48" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="48" Height="48" CornerRadius="13" Background="#3B414D">
+                            <TextBlock Text="♫" Foreground="#B7F36B" FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                            <TextBlock Text="СЕЙЧАС ИГРАЕТ" Foreground="#8F9AA8" FontSize="9" CharacterSpacing="100" />
+                            <TextBlock x:Name="MediaTitle" Text="Медиа не обнаружено" Foreground="#F7F8FA" FontSize="14"
+                                       FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="MediaArtist" Text="Запустите музыку в поддерживаемом приложении"
+                                       Foreground="#AEB6C2" FontSize="11" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                            <Button x:Name="PlayPauseButton" Content="▶" Click="OnPlayPauseClick"
+                                    Background="#3B4652" Foreground="#F7F8FA" BorderThickness="0"
+                                    CornerRadius="15" Width="38" Height="38" IsEnabled="False" />
+                            <Button x:Name="NextButton" Content="»" Click="OnNextClick"
+                                    Background="#3B4652" Foreground="#F7F8FA" BorderThickness="0"
+                                    CornerRadius="15" Width="38" Height="38" IsEnabled="False" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
                 <Border Height="1" Background="#30FFFFFF" />
                 <Grid ColumnSpacing="10">
                     <Grid.ColumnDefinitions>
@@ -67,7 +97,7 @@
                         </StackPanel>
                     </Border>
                 </Grid>
-                <TextBlock Text="Модули уведомлений, медиа и таймера подключаются отдельными системными интеграциями."
+                <TextBlock Text="Управление медиа получает данные напрямую из активной системной сессии Windows."
                            Foreground="#8F9AA8" FontSize="11" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
