@@ -62,7 +62,7 @@ public sealed class CountdownTimerService
 
     public bool Update()
     {
-        if (!IsRunning || Remaining > TimeSpan.Zero) return false;
+        if (Remaining > TimeSpan.Zero) return false;
         _deadlineUtc = null;
         _remaining = TimeSpan.Zero;
         if (_completionRaised) return false;
