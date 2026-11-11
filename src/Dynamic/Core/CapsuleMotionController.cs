@@ -1,4 +1,5 @@
 using System.Numerics;
+using Windows.UI;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Hosting;
@@ -11,6 +12,42 @@ public sealed class CapsuleMotionController
     private SpringVector3NaturalMotionAnimation? _scaleSpring;
     private SpringVector3NaturalMotionAnimation? _translationSpring;
     private SpringVector3NaturalMotionAnimation? _magneticScaleSpring;
+    private AmbientLight? _ambientLight;
+    private PointLight? _pointerLight;
+
+    public void AttachDynamicLighting(UIElement host)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        var visual = ElementCompositionPreview.GetElementVisual(host);
+        _ambientLight = _compositor.CreateAmbientLight();
+        _ambientLight.Color = Color.FromArgb(255, 48, 52, 62);
+        _ambientLight.Targets.Add(visual);
+
+        _pointerLight = _compositor.CreatePointLight();
+        _pointerLight.Color = Color.FromArgb(255, 190, 255, 215);
+        _pointerLight.CoordinateSpace = visual;
+        _pointerLight.Offset = new Vector3((float)(host.ActualWidth * 0.5), 0, 150);
+        _pointerLight.Intensity = 0.55f;
+        _pointerLight.ConstantAttenuation = 1.0f;
+        _pointerLight.LinearAttenuation = 0.0018f;
+        _pointerLight.QuadraticAttenuation = 0.000004f;
+        _pointerLight.MaxAttenuationCutoff = 520.0f;
+        _pointerLight.Targets.Add(visual);
+    }
+
+    public void UpdateDynamicLight(Vector2 position)
+    {
+        if (_pointerLight is null) return;
+        _pointerLight.Offset = new Vector3(position, 150.0f);
+    }
+
+    public void DisposeLighting()
+    {
+        _pointerLight?.Close();
+        _ambientLight?.Close();
+        _pointerLight = null;
+        _ambientLight = null;
+    }
 
     public void SetEmphasis(UIElement target, bool emphasized, double intensity = 0.08)
     {
