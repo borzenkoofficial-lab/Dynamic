@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using WinRT.Interop;
@@ -14,19 +13,28 @@ public sealed partial class MainWindow : Window
     private const uint SwpNoActivate = 0x0010;
     private const uint SwpShowWindow = 0x0040;
     private static readonly IntPtr HwndTopmost = new(-1);
+    private bool _overlayConfigured;
 
     public MainWindow()
     {
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
-        ConfigureOverlayWindow();
+        Activated += OnWindowActivated;
     }
 
-    private void ConfigureOverlayWindow()
+    private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
+    {
+        if (_overlayConfigured)
+            return;
+
+        _overlayConfigured = ConfigureOverlayWindow();
+    }
+
+    private bool ConfigureOverlayWindow()
     {
         var hwnd = WindowNative.GetWindowHandle(this);
         if (hwnd == IntPtr.Zero)
-            return;
+            return false;
 
         var style = GetWindowLongPtr(hwnd, GwlExStyle).ToInt64();
         style |= WsExToolWindow | WsExNoActivate;
@@ -37,12 +45,12 @@ public sealed partial class MainWindow : Window
             DisplayAreaFallback.Primary);
 
         var work = display.WorkArea;
-        var width = 390;
-        var height = 76;
+        const int width = 390;
+        const int height = 76;
         var x = work.X + (work.Width - width) / 2;
         var y = work.Y + 8;
 
-        SetWindowPos(hwnd, HwndTopmost, x, y, width, height,
+        return SetWindowPos(hwnd, HwndTopmost, x, y, width, height,
             SwpNoActivate | SwpShowWindow);
     }
 
