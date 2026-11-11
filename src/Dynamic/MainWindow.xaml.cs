@@ -38,6 +38,15 @@ public sealed partial class MainWindow : Window
 
     private bool ConfigureOverlayWindow()
     {
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.SetBorderAndTitleBar(hasBorder: false, hasTitleBar: false);
+            presenter.IsResizable = false;
+            presenter.IsMaximizable = false;
+            presenter.IsMinimizable = false;
+        }
+        AppWindow.IsShownInSwitchers = false;
+
         var hwnd = WindowNative.GetWindowHandle(this);
         if (hwnd == IntPtr.Zero)
             return false;
