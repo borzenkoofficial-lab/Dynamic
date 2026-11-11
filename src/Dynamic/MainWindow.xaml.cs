@@ -75,6 +75,14 @@ public sealed partial class MainWindow : Window
         UpdateTimerUi();
     }
 
+    public void ReportActivityProgress(string title, double percent, string detail, string speed) =>
+        _progress.Report(title, percent, detail, speed);
+
+    public void CompleteActivityProgress(string title, string detail) =>
+        _progress.Complete(title, detail);
+
+    public void ClearActivityProgress() => _progress.Clear();
+
     private void StartProximityTracking()
     {
         _proximityTimer = _dispatcherQueue.CreateTimer();
