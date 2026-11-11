@@ -152,7 +152,7 @@ public sealed class CapsuleMotionController
         _translationSpring.FinalValue = translation;
         visual.StartAnimation("Translation", _translationSpring);
 
-        _magneticScaleSpring ??= _compositor.CreateSpringVector3Animation();
+        _magneticScaleSpring ??= _compositor!.CreateSpringVector3Animation();
         _magneticScaleSpring.DampingRatio = 0.84f;
         _magneticScaleSpring.Period = TimeSpan.FromMilliseconds(320);
         _magneticScaleSpring.FinalValue = new Vector3(scale, scale, 1.0f);
