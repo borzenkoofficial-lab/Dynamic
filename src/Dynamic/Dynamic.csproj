@@ -16,4 +16,23 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
   </ItemGroup>
+
+  <!--
+    WinUI 3 generates the project's PRI resource index during build, but the
+    unpackaged publish path in the Windows App SDK currently does not add that
+    file to ResolvedFileToPublish. Without it, ms-appx:///MainWindow.xaml cannot
+    be resolved by LoadComponent() at runtime.
+  -->
+  <Target Name="IncludeUnpackagedProjectPriInPublish"
+          BeforeTargets="ComputeResolvedFilesToPublishList"
+          DependsOnTargets="$(GenerateProjectPriFile)"
+          Condition="'$(WindowsPackageType)' == 'None'">
+    <ItemGroup>
+      <ResolvedFileToPublish Include="$(ProjectPriFullPath)"
+                             Condition="Exists('$(ProjectPriFullPath)')">
+        <RelativePath>$(ProjectPriFileName)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
 </Project>

@@ -37,6 +37,17 @@ jobs:
       - name: Publish self-contained Windows x64 app
         run: dotnet publish src/Dynamic/Dynamic.csproj --configuration Release --runtime win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:DebugType=None -p:DebugSymbols=false --output artifacts/publish
 
+      - name: Verify published XAML resources
+        shell: pwsh
+        run: |
+          $pri = Join-Path $env:GITHUB_WORKSPACE "artifacts\publish\Dynamic.pri"
+          if (-not (Test-Path $pri)) {
+            Write-Host "Publish directory:"
+            Get-ChildItem "artifacts\publish" | Select-Object Name, Length
+            throw "Dynamic.pri is missing from the publish output. The installer must not be produced."
+          }
+          Get-Item $pri | Select-Object FullName, Length
+
       - name: Verify real Windows startup
         shell: pwsh
         run: ./tools/Test-DynamicStartup.ps1 -ExecutablePath "artifacts/publish/Dynamic.exe"
