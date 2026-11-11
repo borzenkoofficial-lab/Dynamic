@@ -31,6 +31,8 @@ public sealed partial class MainWindow : Window
     private readonly CountdownTimerService _countdown = new();
     private readonly ProgressActivityService _progress = new();
     private readonly DynamicSettingsStore _settings = new();
+    private readonly FileTransferService _transfers = new();
+    private readonly WindowsNotificationAccessService _notificationAccess = new();
     private double _glassOpacity = 0.64;
     private bool _isApplyingSettings;
     private readonly DispatcherQueue _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
@@ -95,6 +97,51 @@ public sealed partial class MainWindow : Window
         _progress.Complete(title, detail);
 
     public void ClearActivityProgress() => _progress.Clear();
+
+    public async Task DownloadFileAsync(Uri source, string destinationPath, CancellationToken cancellationToken = default)
+    {
+        var progress = new Progress<TransferProgressSnapshot>(item =>
+            ReportActivityProgress(item.Title, item.Percent, item.Detail, item.Speed));
+        try
+        {
+            await _transfers.DownloadAsync(source, destinationPath, progress, cancellationToken);
+            CompleteActivityProgress(Path.GetFileName(destinationPath), "Загрузка завершена");
+        }
+        catch
+        {
+            ClearActivityProgress();
+            throw;
+        }
+    }
+
+    public async Task CopyFileAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken = default)
+    {
+        var progress = new Progress<TransferProgressSnapshot>(item =>
+            ReportActivityProgress(item.Title, item.Percent, item.Detail, item.Speed));
+        try
+        {
+            await _transfers.CopyFileAsync(sourcePath, destinationPath, progress, cancellationToken);
+            CompleteActivityProgress(Path.GetFileName(sourcePath), "Передача файла завершена");
+        }
+        catch
+        {
+            ClearActivityProgress();
+            throw;
+        }
+    }
+
+    private async void OnNotificationPermissionClick(object sender, RoutedEventArgs args)
+    {
+        WindowsNotificationStatus.Text = "Проверка разрешений Windows…";
+        var result = await _notificationAccess.RequestAccessAsync();
+        WindowsNotificationStatus.Text = result switch
+        {
+            NotificationAccessResult.Allowed => "Доступ разрешён. Источник уведомлений активирован.",
+            NotificationAccessResult.Denied => "Windows не предоставила доступ к уведомлениям.",
+            NotificationAccessResult.PackageIdentityRequired => "Текущая Setup-версия — обычное Win32-приложение. Для системного источника уведомлений потребуется MSIX-пакет с объявленной возможностью userNotificationListener.",
+            _ => "Windows не смогла предоставить доступ к системным уведомлениям."
+        };
+    }
 
     private void StartProximityTracking()
     {
@@ -468,6 +515,7 @@ public sealed partial class MainWindow : Window
         _media.Changed -= OnMediaChanged;
         _progress.Changed -= OnProgressChanged;
         _media.Dispose();
+        _transfers.Dispose();
         _motion.DisposeLighting();
         _motion.DisposeLighting();
     }
