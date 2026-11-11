@@ -306,6 +306,16 @@ public sealed partial class MainWindow : Window
         UpdateTimerUi();
     }
 
+    private void OnTimerPreset5Click(object sender, RoutedEventArgs args) => SetTimerPreset(5);
+    private void OnTimerPreset15Click(object sender, RoutedEventArgs args) => SetTimerPreset(15);
+    private void OnTimerPreset25Click(object sender, RoutedEventArgs args) => SetTimerPreset(25);
+
+    private void SetTimerPreset(int minutes)
+    {
+        _countdown.Reset(TimeSpan.FromMinutes(minutes));
+        UpdateTimerUi();
+    }
+
     private void OnProgressChanged(object? sender, EventArgs args) => _dispatcherQueue.TryEnqueue(UpdateProgressUi);
 
     private void UpdateProgressUi()
@@ -453,7 +463,7 @@ public sealed partial class MainWindow : Window
     {
         const double duration = 0.38;
         var t = Math.Clamp(_geometryClock.Elapsed.TotalSeconds / duration, 0, 1);
-        var eased = t >= 1 ? 1 : 1 - Math.Exp(-8 * t) * Math.Cos(10.5 * t);
+        var eased = t >= 1 ? 1 : 1 - Math.Exp(-7.5 * t) * (Math.Cos(8 * t) + 0.9 * Math.Sin(8 * t));
         var geometry = new WindowGeometry(
             Lerp(_geometryFrom.Left, _geometryTarget.X, eased),
             Lerp(_geometryFrom.Top, _geometryTarget.Y, eased),
