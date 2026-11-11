@@ -30,3 +30,11 @@ The compact/expanded shell and first media-session integration are implemented i
 - Media metadata includes timeline position/duration and the system-provided thumbnail. The UI extrapolates playback position locally between session updates; it does not invent track data.
 - Countdown uses a monotonic Stopwatch, so wall-clock adjustments do not change remaining time. Completion raises an in-app transient notification.
 - ProgressActivityService is a producer contract for real download/export/install integrations. The UI stays hidden until a producer reports actual progress; no fabricated system-wide download detection is implied.
+
+
+## Notification and progress boundaries
+
+- The current notification surface is an in-app transient toast for Dynamic-owned events (timer completion and completed activity reports). It is not yet an OS notification listener.
+- Windows notification ingestion requires a separate permission/package-identity decision and is not represented as implemented.
+- Progress cards render producer-reported percentage, detail and speed. No system-wide download scanner is claimed until a real supported source is connected.
+- Countdown presets are 5, 15 and 25 minutes; countdown uses monotonic elapsed time and currently resets when the app process exits.
