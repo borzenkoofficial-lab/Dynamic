@@ -30,6 +30,9 @@ public sealed partial class MainWindow : Window
     private readonly MediaSessionService _media = new();
     private readonly CountdownTimerService _countdown = new();
     private readonly ProgressActivityService _progress = new();
+    private readonly DynamicSettingsStore _settings = new();
+    private double _glassOpacity = 0.64;
+    private bool _isApplyingSettings;
     private readonly DispatcherQueue _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
     private DispatcherQueueTimer? _proximityTimer;
     private DispatcherQueueTimer? _geometryTimer;
@@ -56,6 +59,14 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _isApplyingSettings = true;
+        var preferences = _settings.Load();
+        _glassOpacity = Math.Clamp(preferences.GlassOpacity, 0.35, 0.92);
+        _countdown.Restore(preferences.Timer);
+        GlassOpacitySlider.Value = _glassOpacity;
+        GlassBase.Opacity = _glassOpacity;
+        GlassOpacityValue.Text = $"{_glassOpacity:P0}";
+        _isApplyingSettings = false;
         ExtendsContentIntoTitleBar = true;
         SystemBackdrop = new DesktopAcrylicBackdrop();
         Capsule.PointerPressed += OnCapsulePointerPressed;
@@ -323,12 +334,14 @@ public sealed partial class MainWindow : Window
     {
         if (_countdown.IsRunning) _countdown.Pause();
         else _countdown.Start();
+        PersistSettings();
         UpdateTimerUi();
     }
 
     private void OnTimerResetClick(object sender, RoutedEventArgs args)
     {
         _countdown.Reset();
+        PersistSettings();
         UpdateTimerUi();
     }
 
@@ -339,7 +352,22 @@ public sealed partial class MainWindow : Window
     private void SetTimerPreset(int minutes)
     {
         _countdown.Reset(TimeSpan.FromMinutes(minutes));
+        PersistSettings();
         UpdateTimerUi();
+    }
+
+    private void OnGlassOpacityChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs args)
+    {
+        _glassOpacity = Math.Clamp(args.NewValue, 0.35, 0.92);
+        GlassBase.Opacity = _glassOpacity;
+        GlassOpacityValue.Text = $"{_glassOpacity:P0}";
+        if (!_isApplyingSettings) PersistSettings();
+    }
+
+    private void PersistSettings()
+    {
+        try { _settings.Save(new DynamicPreferences(_glassOpacity, _countdown.ExportState())); }
+        catch (Exception) { /* A settings write must never interrupt the overlay UI. */ }
     }
 
     private void RenderActivityProgress()
@@ -425,6 +453,7 @@ public sealed partial class MainWindow : Window
 
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
+        PersistSettings();
         StopTimer(_proximityTimer, OnProximityTick);
         StopTimer(_geometryTimer, OnGeometryTick);
         StopTimer(_uiTimer, OnUiClockTick);
