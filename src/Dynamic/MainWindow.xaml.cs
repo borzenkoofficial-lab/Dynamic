@@ -24,8 +24,7 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         Capsule.PointerPressed += OnCapsulePointerPressed;
 
-        // Configure the HWND before it is shown. This avoids first showing an
-        // ordinary activating window and only then trying to turn it into an overlay.
+        // Configure the HWND before it is shown to avoid activating a normal window first.
         if (!ConfigureOverlayWindow())
             throw new InvalidOperationException("Dynamic could not initialize its overlay HWND.");
     }
@@ -51,11 +50,13 @@ public sealed partial class MainWindow : Window
             Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd),
             DisplayAreaFallback.Primary);
 
+        var dpi = GetDpiForWindow(hwnd);
+        var scale = dpi == 0 ? 1.0 : dpi / 96.0;
+        var width = (int)Math.Round(390 * scale);
+        var height = (int)Math.Round(76 * scale);
         var work = display.WorkArea;
-        const int width = 390;
-        const int height = 76;
         var x = work.X + (work.Width - width) / 2;
-        var y = work.Y + 8;
+        var y = work.Y + (int)Math.Round(8 * scale);
 
         return SetWindowPos(hwnd, HwndTopmost, x, y, width, height,
             SwpNoActivate | SwpShowWindow);
@@ -66,6 +67,9 @@ public sealed partial class MainWindow : Window
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint GetDpiForWindow(IntPtr hWnd);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
