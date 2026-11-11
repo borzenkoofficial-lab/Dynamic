@@ -65,6 +65,28 @@ jobs:
           & $iscc "/DAppVersion=0.1.${{ github.run_number }}" "/DPublishDir=$publish" "/DOutputDir=$output" installer\Dynamic.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Verify installed Setup launches
+        shell: pwsh
+        run: |
+          $setup = Join-Path $env:GITHUB_WORKSPACE "artifacts\\Dynamic-Setup-x64.exe"
+          $installDir = Join-Path $env:RUNNER_TEMP "Dynamic-Smoke-Install"
+          & $setup /VERYSILENT /SUPPRESSMSGBOXES /NORESTART "/DIR=$installDir"
+          if ($LASTEXITCODE -ne 0) { throw "Dynamic Setup failed with exit code $LASTEXITCODE." }
+
+          try {
+            $installedExe = Join-Path $installDir "Dynamic.exe"
+            $installedPri = Join-Path $installDir "Dynamic.pri"
+            if (-not (Test-Path $installedExe)) { throw "Installed Dynamic.exe is missing." }
+            if (-not (Test-Path $installedPri)) { throw "Installed Dynamic.pri is missing." }
+            ./tools/Test-DynamicStartup.ps1 -ExecutablePath $installedExe
+          }
+          finally {
+            $uninstaller = Join-Path $installDir "unins000.exe"
+            if (Test-Path $uninstaller) {
+              & $uninstaller /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+            }
+          }
+
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
