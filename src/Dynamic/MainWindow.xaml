@@ -20,8 +20,7 @@
                         BorderThickness="1" BorderBrush="#A6FFFFFF"
                         Background="#D90B0D11" />
                 <Border x:Name="TopSheen" IsHitTestVisible="False" CornerRadius="38"
-                        Margin="1" VerticalAlignment="Top" Height="34" Opacity="0.72"
-                        Background="{ThemeResource SystemControlAcrylicWindowBrush}">
+                        Margin="1" VerticalAlignment="Top" Height="34" Opacity="0.72">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                             <GradientStop Color="#42FFFFFF" Offset="0" />
