@@ -1,4 +1,5 @@
 using Windows.Media.Control;
+using Windows.Storage.Streams;
 
 namespace Dynamic.Services;
 
@@ -7,13 +8,17 @@ public sealed record MediaSessionSnapshot(
     string Artist,
     bool IsPlaying,
     bool CanTogglePlayback,
-    bool CanSkipNext);
+    bool CanSkipNext,
+    TimeSpan Position,
+    TimeSpan Duration,
+    IRandomAccessStreamReference? Artwork);
 
 public sealed class MediaSessionService : IDisposable
 {
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _session;
     private bool _disposed;
+    private int _refreshVersion;
 
     public event EventHandler? Changed;
     public MediaSessionSnapshot? Snapshot { get; private set; }
@@ -77,6 +82,7 @@ public sealed class MediaSessionService : IDisposable
         if (_disposed || _manager is null)
             return;
 
+        var version = Interlocked.Increment(ref _refreshVersion);
         try
         {
             var nextSession = _manager.GetCurrentSession();
@@ -104,20 +110,28 @@ public sealed class MediaSessionService : IDisposable
             {
                 var properties = await _session.TryGetMediaPropertiesAsync();
                 var playback = _session.GetPlaybackInfo();
+                var timeline = _session.GetTimelineProperties();
+                var duration = timeline.EndTime - timeline.StartTime;
+                if (duration < TimeSpan.Zero) duration = TimeSpan.Zero;
+                if (_disposed || version != Volatile.Read(ref _refreshVersion)) return;
                 Snapshot = new MediaSessionSnapshot(
                     string.IsNullOrWhiteSpace(properties.Title) ? "Неизвестный трек" : properties.Title,
                     string.IsNullOrWhiteSpace(properties.Artist) ? "Неизвестный исполнитель" : properties.Artist,
                     playback.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing,
                     playback.Controls.IsPlayPauseToggleEnabled,
-                    playback.Controls.IsNextEnabled);
+                    playback.Controls.IsNextEnabled,
+                    timeline.Position < TimeSpan.Zero ? TimeSpan.Zero : timeline.Position,
+                    duration,
+                    properties.Thumbnail);
             }
         }
         catch (Exception)
         {
-            Snapshot = null;
+            if (version == Volatile.Read(ref _refreshVersion)) Snapshot = null;
         }
 
-        Changed?.Invoke(this, EventArgs.Empty);
+        if (!_disposed && version == Volatile.Read(ref _refreshVersion))
+            Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public void Dispose()
@@ -126,6 +140,7 @@ public sealed class MediaSessionService : IDisposable
             return;
 
         _disposed = true;
+        Interlocked.Increment(ref _refreshVersion);
         if (_manager is not null)
         {
             _manager.CurrentSessionChanged -= OnCurrentSessionChanged;
