@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Dynamic.Core;
@@ -6,6 +7,8 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using WinRT.Interop;
 
 namespace Dynamic;
@@ -24,8 +27,21 @@ public sealed partial class MainWindow : Window
     private readonly CapsuleStateMachine _stateMachine = new();
     private readonly CapsuleMotionController _motion = new();
     private readonly MediaSessionService _media = new();
+    private readonly CountdownTimerService _countdown = new();
+    private readonly ProgressActivityService _progress = new();
     private readonly DispatcherQueue _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
     private DispatcherQueueTimer? _proximityTimer;
+    private DispatcherQueueTimer? _geometryTimer;
+    private DispatcherQueueTimer? _uiTimer;
+    private DispatcherQueueTimer? _toastTimer;
+    private readonly Stopwatch _geometryClock = new();
+    private readonly Stopwatch _mediaClock = new();
+    private NativeRect _geometryFrom;
+    private WindowGeometry _geometryTarget;
+    private int _currentRadius = 38;
+    private MediaSessionSnapshot? _mediaSnapshot;
+    private string? _loadedArtworkKey;
+    private string? _lastCompletedActivity;
     private IntPtr _hwnd;
     private double _scale = 1.0;
     private Vector3 _lastMagneticTranslation = new(float.NaN, float.NaN, float.NaN);
@@ -41,6 +57,7 @@ public sealed partial class MainWindow : Window
         Capsule.PointerMoved += OnCapsulePointerMoved;
         Capsule.PointerExited += OnCapsulePointerExited;
         _media.Changed += OnMediaChanged;
+        _progress.Changed += OnProgressChanged;
         Closed += OnWindowClosed;
         _ = _media.InitializeAsync();
 
@@ -48,6 +65,8 @@ public sealed partial class MainWindow : Window
             throw new InvalidOperationException("Dynamic could not initialize its overlay HWND.");
 
         StartProximityTracking();
+        StartUiClock();
+        UpdateTimerUi();
     }
 
     private void StartProximityTracking()
@@ -130,14 +149,13 @@ public sealed partial class MainWindow : Window
         EdgeGlow.Opacity = 0.92;
     }
 
-    private void OnMediaChanged(object? sender, EventArgs args)
-    {
-        _dispatcherQueue.TryEnqueue(UpdateMediaUi);
-    }
+    private void OnMediaChanged(object? sender, EventArgs args) => _dispatcherQueue.TryEnqueue(UpdateMediaUi);
 
-    private void UpdateMediaUi()
+    private async void UpdateMediaUi()
     {
         var media = _media.Snapshot;
+        _mediaSnapshot = media;
+        _mediaClock.Restart();
         if (media is null)
         {
             CapsuleSubtitle.Text = "Рабочая капсула";
@@ -146,17 +164,190 @@ public sealed partial class MainWindow : Window
             PlayPauseButton.Content = "▶";
             PlayPauseButton.IsEnabled = false;
             NextButton.IsEnabled = false;
+            MediaProgress.Value = 0;
+            MediaElapsedText.Text = "0:00";
+            MediaDurationText.Text = "--:--";
+            MediaArtworkImage.Source = null;
+            MediaArtworkImage.Visibility = Visibility.Collapsed;
+            MediaArtworkGlyph.Visibility = Visibility.Visible;
+            _loadedArtworkKey = null;
             return;
         }
 
         CapsuleSubtitle.Text = media.Title;
         MediaTitle.Text = media.Title;
+        MediaArtist.Text = media.Artist;
         _motion.SetEmphasis(MediaArtwork, media.IsPlaying, 0.035);
         _motion.FadeOpacity(EdgeGlow, media.IsPlaying ? 0.72f : 0.42f, 260);
-        MediaArtist.Text = media.Artist;
         PlayPauseButton.Content = media.IsPlaying ? "Ⅱ" : "▶";
         PlayPauseButton.IsEnabled = media.CanTogglePlayback;
         NextButton.IsEnabled = media.CanSkipNext;
+        RenderMediaProgress();
+
+        var artworkKey = media.Title + "\u001f" + media.Artist;
+        if (artworkKey == _loadedArtworkKey) return;
+        _loadedArtworkKey = artworkKey;
+        if (media.Artwork is null)
+        {
+            MediaArtworkImage.Source = null;
+            MediaArtworkImage.Visibility = Visibility.Collapsed;
+            MediaArtworkGlyph.Visibility = Visibility.Visible;
+            return;
+        }
+
+        try
+        {
+            using var stream = await media.Artwork.OpenReadAsync();
+            var bitmap = new BitmapImage();
+            await bitmap.SetSourceAsync(stream);
+            if (_mediaSnapshot?.Title != media.Title || _mediaSnapshot?.Artist != media.Artist) return;
+            MediaArtworkImage.Source = bitmap;
+            MediaArtworkImage.Visibility = Visibility.Visible;
+            MediaArtworkGlyph.Visibility = Visibility.Collapsed;
+        }
+        catch (Exception)
+        {
+            MediaArtworkImage.Visibility = Visibility.Collapsed;
+            MediaArtworkGlyph.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void RenderMediaProgress()
+    {
+        var media = _mediaSnapshot;
+        if (media is null || media.Duration <= TimeSpan.Zero)
+        {
+            MediaProgress.Value = 0;
+            MediaElapsedText.Text = "0:00";
+            MediaDurationText.Text = "--:--";
+            return;
+        }
+        var position = media.Position + (media.IsPlaying ? _mediaClock.Elapsed : TimeSpan.Zero);
+        if (position > media.Duration) position = media.Duration;
+        MediaProgress.Value = Math.Clamp(position.TotalMilliseconds / media.Duration.TotalMilliseconds, 0, 1);
+        MediaElapsedText.Text = FormatTime(position);
+        MediaDurationText.Text = FormatTime(media.Duration);
+    }
+
+    private static string FormatTime(TimeSpan value)
+    {
+        var minutes = (int)Math.Floor(Math.Max(0, value.TotalSeconds) / 60);
+        return $"{minutes}:{Math.Max(0, value.Seconds):00}";
+    }
+
+    private void StartUiClock()
+    {
+        _uiTimer = _dispatcherQueue.CreateTimer();
+        _uiTimer.Interval = TimeSpan.FromMilliseconds(100);
+        _uiTimer.IsRepeating = true;
+        _uiTimer.Tick += OnUiClockTick;
+        _uiTimer.Start();
+    }
+
+    private void OnUiClockTick(DispatcherQueueTimer sender, object args)
+    {
+        RenderMediaProgress();
+        UpdateTimerUi();
+    }
+
+    private void UpdateTimerUi()
+    {
+        var completed = _countdown.Update();
+        var remaining = _countdown.Remaining;
+        var duration = _countdown.Duration;
+        var fraction = duration <= TimeSpan.Zero ? 0 : Math.Clamp(remaining.TotalMilliseconds / duration.TotalMilliseconds, 0, 1);
+        TimerRingLabel.Text = FormatTime(remaining);
+        TimerStartButton.Content = _countdown.IsRunning ? "Пауза" : "Старт";
+        TimerStatusText.Text = _countdown.IsRunning ? "Идёт отсчёт" : remaining == TimeSpan.Zero ? "Время вышло" : "Готов к запуску";
+        UpdateTimerRing(fraction);
+        if (completed)
+        {
+            _motion.SetEmphasis(TimerCard, true, 0.035);
+            ShowNotification("Таймер завершён", "Время вышло. Отсчёт остановлен.");
+        }
+    }
+
+    private void UpdateTimerRing(double fraction)
+    {
+        const double radius = 25;
+        const double center = 29;
+        if (fraction <= 0.001) { TimerRingProgress.Data = null; return; }
+        var angle = (-90 + 360 * fraction) * Math.PI / 180;
+        var figure = new PathFigure
+        {
+            StartPoint = new Windows.Foundation.Point(center, center - radius),
+            IsClosed = false
+        };
+        figure.Segments.Add(new ArcSegment
+        {
+            Point = new Windows.Foundation.Point(center + radius * Math.Cos(angle), center + radius * Math.Sin(angle)),
+            Size = new Windows.Foundation.Size(radius, radius),
+            IsLargeArc = fraction > 0.5,
+            SweepDirection = SweepDirection.Clockwise
+        });
+        var geometry = new PathGeometry();
+        geometry.Figures.Add(figure);
+        TimerRingProgress.Data = geometry;
+    }
+
+    private void OnTimerStartClick(object sender, RoutedEventArgs args)
+    {
+        if (_countdown.IsRunning) _countdown.Pause();
+        else _countdown.Start();
+        UpdateTimerUi();
+    }
+
+    private void OnTimerResetClick(object sender, RoutedEventArgs args)
+    {
+        _countdown.Reset();
+        UpdateTimerUi();
+    }
+
+    private void OnProgressChanged(object? sender, EventArgs args) => _dispatcherQueue.TryEnqueue(UpdateProgressUi);
+
+    private void UpdateProgressUi()
+    {
+        var activity = _progress.Current;
+        if (activity is null) { ProgressCard.Visibility = Visibility.Collapsed; return; }
+        ProgressCard.Visibility = Visibility.Visible;
+        ActivityTitle.Text = activity.Title;
+        ActivityPercent.Text = $"{activity.Percent:0}%";
+        ActivityProgress.Value = activity.Percent;
+        ActivityDetail.Text = activity.Detail;
+        ActivitySpeed.Text = activity.Speed;
+        if (activity.IsCompleted && _lastCompletedActivity != activity.Title)
+        {
+            _lastCompletedActivity = activity.Title;
+            _motion.Reveal(ProgressCard, 1.0f, 280);
+            ShowNotification("Операция завершена", activity.Title + " — " + activity.Detail);
+        }
+    }
+
+    private void ShowNotification(string title, string message)
+    {
+        if (_stateMachine.Target != CapsuleState.Expanded) BeginExpandedTransition(true);
+        NotificationTitle.Text = title;
+        NotificationMessage.Text = message;
+        NotificationToast.Visibility = Visibility.Visible;
+        _motion.FadeOpacity(NotificationToast, 1.0f, 180);
+        _toastTimer ??= _dispatcherQueue.CreateTimer();
+        _toastTimer.IsRepeating = false;
+        _toastTimer.Tick -= OnToastTimerTick;
+        _toastTimer.Tick += OnToastTimerTick;
+        _toastTimer.Stop();
+        _toastTimer.Interval = TimeSpan.FromSeconds(3.8);
+        _toastTimer.Start();
+    }
+
+    private void OnToastTimerTick(DispatcherQueueTimer sender, object args)
+    {
+        _toastTimer?.Stop();
+        _motion.FadeOpacity(NotificationToast, 0.0f, 220);
+        var hideTimer = _dispatcherQueue.CreateTimer();
+        hideTimer.IsRepeating = false;
+        hideTimer.Interval = TimeSpan.FromMilliseconds(240);
+        hideTimer.Tick += (_, _) => { hideTimer.Stop(); NotificationToast.Visibility = Visibility.Collapsed; };
+        hideTimer.Start();
     }
 
     private async void OnPlayPauseClick(object sender, RoutedEventArgs args)
@@ -173,14 +364,12 @@ public sealed partial class MainWindow : Window
 
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
-        if (_proximityTimer is not null)
-        {
-            _proximityTimer.Stop();
-            _proximityTimer.Tick -= OnProximityTick;
-            _proximityTimer = null;
-        }
-
+        StopTimer(_proximityTimer, OnProximityTick);
+        StopTimer(_geometryTimer, OnGeometryTick);
+        StopTimer(_uiTimer, OnUiClockTick);
+        if (_toastTimer is not null) _toastTimer.Stop();
         _media.Changed -= OnMediaChanged;
+        _progress.Changed -= OnProgressChanged;
         _media.Dispose();
     }
 
@@ -190,35 +379,105 @@ public sealed partial class MainWindow : Window
         args.Handled = true;
     }
 
-    private void OnCollapseClick(object sender, RoutedEventArgs args)
-    {
-        ToggleExpanded(forceCompact: true);
-    }
+    private void OnCollapseClick(object sender, RoutedEventArgs args) => BeginExpandedTransition(false);
 
     private void ToggleExpanded(bool forceCompact = false)
     {
         var expand = !forceCompact && _stateMachine.Target != CapsuleState.Expanded;
+        BeginExpandedTransition(expand);
+    }
+
+    private void BeginExpandedTransition(bool expand)
+    {
         var target = expand ? CapsuleState.Expanded : CapsuleState.Compact;
-        if (!_stateMachine.Request(target))
-            return;
-
-        ExpandedPanel.Visibility = expand ? Visibility.Visible : Visibility.Collapsed;
-
-        if (!ResizeOverlay(expand))
+        if (!_stateMachine.Request(target)) return;
+        if (expand)
         {
-            ExpandedPanel.Visibility = expand ? Visibility.Collapsed : Visibility.Visible;
+            ExpandedPanel.Visibility = Visibility.Visible;
+            ExpandedPanel.Opacity = 0;
+            _motion.FadeOpacity(ExpandedPanel, 1.0f, 300);
+        }
+        else
+        {
+            _motion.FadeOpacity(ExpandedPanel, 0.0f, 180);
+        }
+        if (!StartGeometryTransition(expand))
+        {
             _stateMachine.Request(expand ? CapsuleState.Compact : CapsuleState.Expanded);
+            _stateMachine.CompleteTransition();
+            ExpandedPanel.Visibility = expand ? Visibility.Collapsed : Visibility.Visible;
+        }
+    }
+
+    private bool StartGeometryTransition(bool expanded)
+    {
+        if (_hwnd == IntPtr.Zero || !GetWindowRect(_hwnd, out var current)) return false;
+        _geometryFrom = current;
+        _geometryTarget = CalculateTargetGeometry(expanded);
+        _geometryClock.Restart();
+        _geometryTimer ??= _dispatcherQueue.CreateTimer();
+        _geometryTimer.Interval = TimeSpan.FromMilliseconds(16);
+        _geometryTimer.IsRepeating = true;
+        _geometryTimer.Tick -= OnGeometryTick;
+        _geometryTimer.Tick += OnGeometryTick;
+        _geometryTimer.Start();
+        return true;
+    }
+
+    private WindowGeometry CalculateTargetGeometry(bool expanded)
+    {
+        var display = DisplayArea.GetFromWindowId(
+            Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hwnd), DisplayAreaFallback.Primary);
+        var width = (int)Math.Round((expanded ? 520 : 390) * _scale);
+        var height = (int)Math.Round((expanded ? 620 : 76) * _scale);
+        var work = display.WorkArea;
+        return new WindowGeometry(work.X + (work.Width - width) / 2,
+            work.Y + (int)Math.Round(8 * _scale), width, height,
+            (int)Math.Round((expanded ? 30 : 38) * _scale));
+    }
+
+    private void OnGeometryTick(DispatcherQueueTimer sender, object args)
+    {
+        const double duration = 0.38;
+        var t = Math.Clamp(_geometryClock.Elapsed.TotalSeconds / duration, 0, 1);
+        var eased = t >= 1 ? 1 : 1 - Math.Exp(-8 * t) * Math.Cos(10.5 * t);
+        var geometry = new WindowGeometry(
+            Lerp(_geometryFrom.Left, _geometryTarget.X, eased),
+            Lerp(_geometryFrom.Top, _geometryTarget.Y, eased),
+            Lerp(_geometryFrom.Right - _geometryFrom.Left, _geometryTarget.Width, eased),
+            Lerp(_geometryFrom.Bottom - _geometryFrom.Top, _geometryTarget.Height, eased),
+            Lerp(_currentRadius, _geometryTarget.Radius, eased));
+        if (!ApplyWindowGeometry(geometry))
+        {
+            _geometryTimer?.Stop();
             _stateMachine.CompleteTransition();
             return;
         }
+        if (t < 1) return;
 
+        _geometryTimer?.Stop();
+        ApplyWindowGeometry(_geometryTarget);
         _stateMachine.CompleteTransition();
-        if (expand)
+        if (_stateMachine.Target == CapsuleState.Compact)
+            ExpandedPanel.Visibility = Visibility.Collapsed;
+        else
         {
             _motion.Reveal(MediaCard, 1.0f, 280);
-            _motion.Reveal(PlatformCard, 1.0f, 340);
-            _motion.Reveal(StatusCard, 1.0f, 390);
+            _motion.Reveal(TimerCard, 1.0f, 320);
+            _motion.Reveal(PlatformCard, 1.0f, 360);
+            _motion.Reveal(StatusCard, 1.0f, 400);
+            if (ProgressCard.Visibility == Visibility.Visible) _motion.Reveal(ProgressCard, 1.0f, 440);
         }
+    }
+
+    private static int Lerp(int from, int to, double amount) =>
+        (int)Math.Round(from + (to - from) * amount);
+
+    private static void StopTimer(DispatcherQueueTimer? timer, TypedEventHandler<DispatcherQueueTimer, object> handler)
+    {
+        if (timer is null) return;
+        timer.Stop();
+        timer.Tick -= handler;
     }
 
     private bool ConfigureOverlayWindow()
@@ -255,28 +514,31 @@ public sealed partial class MainWindow : Window
             DisplayAreaFallback.Primary);
 
         var width = (int)Math.Round((expanded ? 520 : 390) * _scale);
-        var height = (int)Math.Round((expanded ? 420 : 76) * _scale);
-        var topOffset = (int)Math.Round(8 * _scale);
+        var height = (int)Math.Round((expanded ? 620 : 76) * _scale);
         var work = display.WorkArea;
         var x = work.X + (work.Width - width) / 2;
-        var y = work.Y + topOffset;
-
-        if (!SetWindowPos(_hwnd, HwndTopmost, x, y, width, height, SwpNoActivate | SwpShowWindow))
-            return false;
-
+        var y = work.Y + (int)Math.Round(8 * _scale);
         var radius = (int)Math.Round((expanded ? 30 : 38) * _scale);
-        var region = CreateRoundRectRgn(0, 0, width + 1, height + 1, radius * 2, radius * 2);
-        if (region == IntPtr.Zero)
-            return false;
+        return ApplyWindowGeometry(new WindowGeometry(x, y, width, height, radius));
+    }
 
+    private bool ApplyWindowGeometry(WindowGeometry geometry)
+    {
+        if (!SetWindowPos(_hwnd, HwndTopmost, geometry.X, geometry.Y, geometry.Width, geometry.Height,
+                SwpNoActivate | SwpShowWindow)) return false;
+        var region = CreateRoundRectRgn(0, 0, geometry.Width + 1, geometry.Height + 1,
+            geometry.Radius * 2, geometry.Radius * 2);
+        if (region == IntPtr.Zero) return false;
         if (SetWindowRgn(_hwnd, region, true) == 0)
         {
             DeleteObject(region);
             return false;
         }
-
+        _currentRadius = geometry.Radius;
         return true;
     }
+
+    private readonly record struct WindowGeometry(int X, int Y, int Width, int Height, int Radius);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint
