@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
+using Dynamic.Core;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Input;
 using WinRT.Interop;
 
 namespace Dynamic;
@@ -13,6 +15,8 @@ public sealed partial class MainWindow : Window
     private const uint SwpNoActivate = 0x0010;
     private const uint SwpShowWindow = 0x0040;
     private static readonly IntPtr HwndTopmost = new(-1);
+    private readonly CapsuleStateMachine _stateMachine = new();
+    private readonly CapsuleMotionController _motion = new();
     private bool _overlayConfigured;
 
     public MainWindow()
@@ -20,6 +24,14 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
         Activated += OnWindowActivated;
+        Capsule.PointerPressed += OnCapsulePointerPressed;
+    }
+
+    private void OnCapsulePointerPressed(object sender, PointerRoutedEventArgs args)
+    {
+        var expand = _stateMachine.Target != CapsuleState.Expanded;
+        _stateMachine.Request(expand ? CapsuleState.Expanded : CapsuleState.Compact);
+        _motion.SetEmphasis(Capsule, expand);
     }
 
     private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
