@@ -6,20 +6,20 @@
     <Grid x:Name="Root" Background="Transparent">
         <Border
             x:Name="Capsule"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Margin="0,12,0,0"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
             Padding="18,10"
-            Background="#F20B0D11"
-            BorderBrush="#50FFFFFF"
+            Background="#B20B0D11"
+            BorderBrush="#70FFFFFF"
             BorderThickness="1"
-            CornerRadius="28">
-            <StackPanel Orientation="Horizontal" Spacing="13">
+            CornerRadius="38"
+            RenderTransformOrigin="0.5,0.5">
+            <StackPanel Orientation="Horizontal" Spacing="13" VerticalAlignment="Center">
                 <Border
                     Width="38"
                     Height="38"
                     CornerRadius="13"
-                    Background="#252B35"
+                    Background="#353B46"
                     VerticalAlignment="Center">
                     <TextBlock
                         Text="D"
@@ -38,7 +38,7 @@
                         CharacterSpacing="150" />
                     <TextBlock
                         Text="Capsule foundation"
-                        Foreground="#AEB5C0"
+                        Foreground="#C4CAD3"
                         FontSize="12" />
                 </StackPanel>
                 <Ellipse
