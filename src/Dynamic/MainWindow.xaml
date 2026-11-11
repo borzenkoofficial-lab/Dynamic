@@ -76,7 +76,8 @@
             <Border.Shadow>
                 <ThemeShadow />
             </Border.Shadow>
-            <StackPanel Spacing="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="570">
+            <StackPanel Spacing="14">
                 <Grid>
                     <StackPanel Spacing="3">
                         <TextBlock Text="ЦЕНТР DYNAMIC" Foreground="#F7F8FA" FontSize="11" FontWeight="SemiBold" CharacterSpacing="130" />
@@ -97,7 +98,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <Border x:Name="MediaArtwork" Width="54" Height="54" CornerRadius="14"
-                                    Background="#3B414D" BorderBrush="#55FFFFFF" BorderThickness="1" Clip="True">
+                                    Background="#3B414D" BorderBrush="#55FFFFFF" BorderThickness="1">
                                 <Grid>
                                     <TextBlock x:Name="MediaArtworkGlyph" Text="♫" Foreground="#B7F36B"
                                                FontSize="27" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -149,7 +150,14 @@
                             <TextBlock Text="ТАЙМЕР" Foreground="#8F9AA8" FontSize="9" CharacterSpacing="100" />
                             <TextBlock x:Name="TimerStatusText" Text="Готов к запуску" Foreground="#F7F8FA"
                                        FontSize="14" FontWeight="SemiBold" />
-                            <TextBlock Text="Локальный обратный отсчёт" Foreground="#AEB6C2" FontSize="11" />
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <Button Content="5 мин" Click="OnTimerPreset5Click" Padding="7,3"
+                                        Background="#35404B" Foreground="#C4CAD3" BorderThickness="0" CornerRadius="8" FontSize="10" />
+                                <Button Content="15 мин" Click="OnTimerPreset15Click" Padding="7,3"
+                                        Background="#35404B" Foreground="#C4CAD3" BorderThickness="0" CornerRadius="8" FontSize="10" />
+                                <Button Content="25 мин" Click="OnTimerPreset25Click" Padding="7,3"
+                                        Background="#35404B" Foreground="#C4CAD3" BorderThickness="0" CornerRadius="8" FontSize="10" />
+                            </StackPanel>
                         </StackPanel>
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="5">
                             <Button x:Name="TimerStartButton" Content="Старт" Click="OnTimerStartClick"
@@ -200,9 +208,10 @@
                         </StackPanel>
                     </Border>
                 </Grid>
-                <TextBlock Text="Управление медиа получает данные напрямую из активной системной сессии Windows."
+                <TextBlock Text="Системные данные отображаются только при наличии доступного источника."
                            Foreground="#8F9AA8" FontSize="11" TextWrapping="Wrap" />
             </StackPanel>
+            </ScrollViewer>
         </Border>
         <Border x:Name="NotificationToast" Visibility="Collapsed" Opacity="0"
                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,96,0,0"
