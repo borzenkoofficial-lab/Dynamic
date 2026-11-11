@@ -9,7 +9,6 @@ namespace Dynamic.Core;
 public sealed class CapsuleMotionController
 {
     private readonly Compositor _compositor = CompositionTarget.GetCompositorForCurrentThread();
-    private SpringVector3NaturalMotionAnimation? _scaleSpring;
     private SpringVector3NaturalMotionAnimation? _translationSpring;
     private SpringVector3NaturalMotionAnimation? _magneticScaleSpring;
     private AmbientLight? _ambientLight;
@@ -18,21 +17,28 @@ public sealed class CapsuleMotionController
     public void AttachDynamicLighting(UIElement host)
     {
         ArgumentNullException.ThrowIfNull(host);
-        var visual = ElementCompositionPreview.GetElementVisual(host);
-        _ambientLight = _compositor.CreateAmbientLight();
-        _ambientLight.Color = Color.FromArgb(255, 48, 52, 62);
-        _ambientLight.Targets.Add(visual);
+        try
+        {
+            var visual = ElementCompositionPreview.GetElementVisual(host);
+            _ambientLight = _compositor.CreateAmbientLight();
+            _ambientLight.Color = Color.FromArgb(255, 48, 52, 62);
+            _ambientLight.Targets.Add(visual);
 
-        _pointerLight = _compositor.CreatePointLight();
-        _pointerLight.Color = Color.FromArgb(255, 190, 255, 215);
-        _pointerLight.CoordinateSpace = visual;
-        _pointerLight.Offset = new Vector3((float)(host.ActualWidth * 0.5), 0, 150);
-        _pointerLight.Intensity = 0.55f;
-        _pointerLight.ConstantAttenuation = 1.0f;
-        _pointerLight.LinearAttenuation = 0.0018f;
-        _pointerLight.QuadraticAttenuation = 0.000004f;
-        _pointerLight.MaxAttenuationCutoff = 520.0f;
-        _pointerLight.Targets.Add(visual);
+            _pointerLight = _compositor.CreatePointLight();
+            _pointerLight.Color = Color.FromArgb(255, 190, 255, 215);
+            _pointerLight.CoordinateSpace = visual;
+            _pointerLight.Offset = new Vector3((float)(host.ActualWidth * 0.5), 0, 150);
+            _pointerLight.Intensity = 0.55f;
+            _pointerLight.ConstantAttenuation = 1.0f;
+            _pointerLight.LinearAttenuation = 0.0018f;
+            _pointerLight.QuadraticAttenuation = 0.000004f;
+            _pointerLight.MaxAttenuationCutoff = 520.0f;
+            _pointerLight.Targets.Add(visual);
+        }
+        catch (Exception)
+        {
+            DisposeLighting();
+        }
     }
 
     public void UpdateDynamicLight(Vector2 position)
@@ -54,14 +60,14 @@ public sealed class CapsuleMotionController
         ArgumentNullException.ThrowIfNull(target);
         SetCenterPoint(target);
 
-        _scaleSpring ??= _compositor.CreateSpringVector3Animation();
-        _scaleSpring.Target = "Scale";
-        _scaleSpring.DampingRatio = 0.82f;
-        _scaleSpring.Period = TimeSpan.FromMilliseconds(280);
+        var scaleSpring = _compositor.CreateSpringVector3Animation();
+        scaleSpring.Target = "Scale";
+        scaleSpring.DampingRatio = 0.82f;
+        scaleSpring.Period = TimeSpan.FromMilliseconds(280);
 
         var scale = emphasized ? (float)(1.0 + Math.Clamp(intensity, 0, 0.2)) : 1.0f;
-        _scaleSpring.FinalValue = new Vector3(scale, scale, 1.0f);
-        target.StartAnimation(_scaleSpring);
+        scaleSpring.FinalValue = new Vector3(scale, scale, 1.0f);
+        target.StartAnimation(scaleSpring);
     }
 
     public void FadeOpacity(UIElement target, float opacity, int durationMilliseconds)
