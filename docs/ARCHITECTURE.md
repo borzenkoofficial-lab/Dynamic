@@ -38,3 +38,6 @@ The compact/expanded shell and first media-session integration are implemented i
 - Windows notification ingestion requires a separate permission/package-identity decision and is not represented as implemented.
 - Progress cards render producer-reported percentage, detail and speed. No system-wide download scanner is claimed until a real supported source is connected.
 - Countdown presets are 5, 15 and 25 minutes; countdown uses monotonic elapsed time and currently resets when the app process exits.
+
+- Playback adds a five-bar composition visualizer that runs only while a media session reports Playing and stops on pause/stop. The track bar is driven by session timeline metadata and a monotonic local clock between updates.
+- App-owned operations can publish progress through MainWindow.ReportActivityProgress / CompleteActivityProgress; the activity card interpolates measured percentage changes and shows producer-supplied transfer speed/detail.
