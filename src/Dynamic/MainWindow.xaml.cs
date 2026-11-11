@@ -44,6 +44,9 @@ public sealed partial class MainWindow : Window
     private int _geometryFromRadius = 38;
     private MediaSessionSnapshot? _mediaSnapshot;
     private string? _loadedArtworkKey;
+    private bool _visualizerActive;
+    private double _activityVisualPercent;
+    private double _activityTargetPercent;
     private string? _lastCompletedActivity;
     private IntPtr _hwnd;
     private double _scale = 1.0;
@@ -170,6 +173,7 @@ public sealed partial class MainWindow : Window
             MediaProgress.Value = 0;
             MediaElapsedText.Text = "0:00";
             MediaDurationText.Text = "--:--";
+            SetVisualizerActive(false);
             MediaArtworkImage.Source = null;
             MediaArtworkImage.Visibility = Visibility.Collapsed;
             MediaArtworkGlyph.Visibility = Visibility.Visible;
@@ -185,6 +189,7 @@ public sealed partial class MainWindow : Window
         PlayPauseButton.Content = media.IsPlaying ? "Ⅱ" : "▶";
         PlayPauseButton.IsEnabled = media.CanTogglePlayback;
         NextButton.IsEnabled = media.CanSkipNext;
+        SetVisualizerActive(media.IsPlaying);
         RenderMediaProgress();
 
         var artworkKey = media.Title + "\u001f" + media.Artist;
@@ -213,6 +218,17 @@ public sealed partial class MainWindow : Window
             MediaArtworkImage.Visibility = Visibility.Collapsed;
             MediaArtworkGlyph.Visibility = Visibility.Visible;
         }
+    }
+
+    private void SetVisualizerActive(bool active)
+    {
+        if (_visualizerActive == active) return;
+        _visualizerActive = active;
+        MediaVisualizer.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+        _motion.SetVisualizer(new UIElement[]
+        {
+            VisualizerBar1, VisualizerBar2, VisualizerBar3, VisualizerBar4, VisualizerBar5
+        }, active);
     }
 
     private void RenderMediaProgress()
@@ -250,6 +266,7 @@ public sealed partial class MainWindow : Window
     private void OnUiClockTick(DispatcherQueueTimer sender, object args)
     {
         RenderMediaProgress();
+        RenderActivityProgress();
         UpdateTimerUi();
     }
 
@@ -317,6 +334,14 @@ public sealed partial class MainWindow : Window
         UpdateTimerUi();
     }
 
+    private void RenderActivityProgress()
+    {
+        var difference = _activityTargetPercent - _activityVisualPercent;
+        if (Math.Abs(difference) < 0.15) _activityVisualPercent = _activityTargetPercent;
+        else _activityVisualPercent += difference * 0.22;
+        ActivityProgress.Value = _activityVisualPercent;
+    }
+
     private void OnProgressChanged(object? sender, EventArgs args) => _dispatcherQueue.TryEnqueue(UpdateProgressUi);
 
     private void UpdateProgressUi()
@@ -331,7 +356,8 @@ public sealed partial class MainWindow : Window
         ProgressCard.Visibility = Visibility.Visible;
         ActivityTitle.Text = activity.Title;
         ActivityPercent.Text = $"{activity.Percent:0}%";
-        ActivityProgress.Value = activity.Percent;
+        _activityTargetPercent = activity.Percent;
+        ActivityProgress.Value = _activityVisualPercent;
         ActivityDetail.Text = activity.Detail;
         ActivitySpeed.Text = activity.Speed;
         if (activity.IsCompleted && _lastCompletedActivity != activity.Title)
