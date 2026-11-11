@@ -57,6 +57,7 @@ public sealed partial class MainWindow : Window
         {
             ExpandedPanel.Visibility = expand ? Visibility.Collapsed : Visibility.Visible;
             _stateMachine.Request(expand ? CapsuleState.Compact : CapsuleState.Expanded);
+            _stateMachine.CompleteTransition();
             return;
         }
 
