@@ -572,7 +572,7 @@ public sealed partial class MainWindow : Window
         return true;
     }
 
-    private WindowGeometry CalculateTargetGeometry(bool expanded)
+    private WindowGeometryFrame CalculateTargetGeometry(bool expanded)
     {
         var display = DisplayArea.GetFromWindowId(
             Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hwnd), DisplayAreaFallback.Primary);
@@ -589,8 +589,8 @@ public sealed partial class MainWindow : Window
         var from = new WindowGeometryFrame(_geometryFrom.Left, _geometryFrom.Top,
             _geometryFrom.Right - _geometryFrom.Left, _geometryFrom.Bottom - _geometryFrom.Top,
             _geometryFromRadius);
-        var geometry = WindowGeometryMath.Interpolate(from, _geometryTarget,
-            WindowGeometryMath.SpringProgress(elapsed, duration));
+        var progress = WindowGeometryMath.SpringProgress(elapsed, duration);
+        var geometry = WindowGeometryMath.Interpolate(from, _geometryTarget, progress);
         if (!ApplyWindowGeometry(geometry))
         {
             _geometryTimer?.Stop();
@@ -600,7 +600,7 @@ public sealed partial class MainWindow : Window
                 ExpandedPanel.Visibility = Visibility.Collapsed;
             return;
         }
-        if (t < 1) return;
+        if (progress < 1) return;
 
         _geometryTimer?.Stop();
         ApplyWindowGeometry(_geometryTarget);
