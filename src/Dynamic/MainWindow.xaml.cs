@@ -616,7 +616,7 @@ public sealed partial class MainWindow : Window
         return ApplyWindowGeometry(WindowGeometryMath.Calculate(work.X, work.Y, work.Width, dpi, expanded));
     }
 
-    private bool ApplyWindowGeometry(WindowGeometry geometry)
+    private bool ApplyWindowGeometry(WindowGeometryFrame geometry)
     {
         if (!SetWindowPos(_hwnd, HwndTopmost, geometry.X, geometry.Y, geometry.Width, geometry.Height,
                 SwpNoActivate | SwpShowWindow)) return false;
