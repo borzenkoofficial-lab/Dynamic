@@ -64,6 +64,14 @@ public sealed class MediaSessionService : IDisposable
         GlobalSystemMediaTransportControlsSessionManager sender,
         SessionsChangedEventArgs args) => _ = RefreshAsync();
 
+    private void OnSessionMediaPropertiesChanged(
+        GlobalSystemMediaTransportControlsSession sender,
+        MediaPropertiesChangedEventArgs args) => _ = RefreshAsync();
+
+    private void OnSessionPlaybackInfoChanged(
+        GlobalSystemMediaTransportControlsSession sender,
+        PlaybackInfoChangedEventArgs args) => _ = RefreshAsync();
+
     private async Task RefreshAsync()
     {
         if (_disposed || _manager is null)
@@ -73,7 +81,20 @@ public sealed class MediaSessionService : IDisposable
         {
             var nextSession = _manager.GetCurrentSession();
             if (!ReferenceEquals(nextSession, _session))
+            {
+                if (_session is not null)
+                {
+                    _session.MediaPropertiesChanged -= OnSessionMediaPropertiesChanged;
+                    _session.PlaybackInfoChanged -= OnSessionPlaybackInfoChanged;
+                }
+
                 _session = nextSession;
+                if (_session is not null)
+                {
+                    _session.MediaPropertiesChanged += OnSessionMediaPropertiesChanged;
+                    _session.PlaybackInfoChanged += OnSessionPlaybackInfoChanged;
+                }
+            }
 
             if (_session is null)
             {
@@ -109,6 +130,12 @@ public sealed class MediaSessionService : IDisposable
         {
             _manager.CurrentSessionChanged -= OnCurrentSessionChanged;
             _manager.SessionsChanged -= OnSessionsChanged;
+        }
+
+        if (_session is not null)
+        {
+            _session.MediaPropertiesChanged -= OnSessionMediaPropertiesChanged;
+            _session.PlaybackInfoChanged -= OnSessionPlaybackInfoChanged;
         }
 
         _session = null;
