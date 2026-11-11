@@ -4,7 +4,7 @@ namespace Dynamic;
 
 public partial class App : Application
 {
-    private Window? _window;
+    private MainWindow? _window;
 
     public App()
     {
@@ -13,7 +13,8 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        // MainWindow configures and shows its HWND with SWP_NOACTIVATE.
+        // Do not call Window.Activate(): that can steal foreground focus.
         _window ??= new MainWindow();
-        _window.Activate();
     }
 }
