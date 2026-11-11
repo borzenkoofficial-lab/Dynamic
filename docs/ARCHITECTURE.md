@@ -22,3 +22,11 @@ Stable targets are Hidden, Compact, and Expanded. Requests to enter or leave the
 ## Current implementation boundary
 
 The compact/expanded shell and first media-session integration are implemented in source. Media artwork, notification listening, timer scheduling, startup settings UI, tray integration, and installer packaging remain separate milestones. The app does not fabricate media, weather, or progress data.
+
+
+## Animated interaction and activity modules
+
+- Window expansion/collapse is interpolated from live HWND bounds; each frame updates both position and rounded hit-test region. Transitions can be interrupted and retargeted from the current geometry.
+- Media metadata includes timeline position/duration and the system-provided thumbnail. The UI extrapolates playback position locally between session updates; it does not invent track data.
+- Countdown uses a monotonic Stopwatch, so wall-clock adjustments do not change remaining time. Completion raises an in-app transient notification.
+- ProgressActivityService is a producer contract for real download/export/install integrations. The UI stays hidden until a producer reports actual progress; no fabricated system-wide download detection is implied.
