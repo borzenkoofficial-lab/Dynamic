@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Dynamic.Core;
 using Dynamic.Services;
@@ -5,7 +6,6 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using WinRT.Interop;
 
 namespace Dynamic;
@@ -18,11 +18,14 @@ public sealed partial class MainWindow : Window
     private const uint SwpNoActivate = 0x0010;
     private const uint SwpShowWindow = 0x0040;
     private static readonly IntPtr HwndTopmost = new(-1);
+    private const double MagneticRadius = 260.0;
+    private const float MagneticStrength = 5.5f;
 
     private readonly CapsuleStateMachine _stateMachine = new();
     private readonly CapsuleMotionController _motion = new();
     private readonly MediaSessionService _media = new();
     private readonly DispatcherQueue _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+    private DispatcherQueueTimer? _proximityTimer;
     private IntPtr _hwnd;
     private double _scale = 1.0;
 
@@ -38,6 +41,45 @@ public sealed partial class MainWindow : Window
 
         if (!ConfigureOverlayWindow())
             throw new InvalidOperationException("Dynamic could not initialize its overlay HWND.");
+
+        StartProximityTracking();
+    }
+
+    private void StartProximityTracking()
+    {
+        _proximityTimer = _dispatcherQueue.CreateTimer();
+        _proximityTimer.Interval = TimeSpan.FromMilliseconds(16);
+        _proximityTimer.IsRepeating = true;
+        _proximityTimer.Tick += OnProximityTick;
+        _proximityTimer.Start();
+    }
+
+    private void OnProximityTick(DispatcherQueueTimer sender, object args)
+    {
+        if (_hwnd == IntPtr.Zero || !GetCursorPos(out var cursor) || !GetWindowRect(_hwnd, out var bounds))
+            return;
+
+        var centerX = (bounds.Left + bounds.Right) * 0.5;
+        var centerY = (bounds.Top + bounds.Bottom) * 0.5;
+        var dx = cursor.X - centerX;
+        var dy = cursor.Y - centerY;
+        var distance = Math.Sqrt(dx * dx + dy * dy);
+
+        if (distance >= MagneticRadius || distance < 0.5)
+        {
+            _motion.SetMagneticPose(Capsule, Vector3.Zero, 1.0f);
+            return;
+        }
+
+        var proximity = 1.0 - distance / MagneticRadius;
+        var eased = (float)(proximity * proximity * (3.0 - 2.0 * proximity));
+        var pull = MagneticStrength * eased;
+        var translation = new Vector3(
+            (float)(dx / distance * pull / _scale),
+            (float)(dy / distance * pull * 0.72 / _scale),
+            0.0f);
+        var scale = 1.0f + 0.018f * eased;
+        _motion.SetMagneticPose(Capsule, translation, scale);
     }
 
     private void OnMediaChanged(object? sender, EventArgs args)
@@ -81,6 +123,13 @@ public sealed partial class MainWindow : Window
 
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
+        if (_proximityTimer is not null)
+        {
+            _proximityTimer.Stop();
+            _proximityTimer.Tick -= OnProximityTick;
+            _proximityTimer = null;
+        }
+
         _media.Changed -= OnMediaChanged;
         _media.Dispose();
     }
@@ -173,6 +222,30 @@ public sealed partial class MainWindow : Window
 
         return true;
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr hWnd, out NativeRect rect);
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
     private static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
