@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-test-package:
@@ -45,7 +45,9 @@ jobs:
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          & $iscc "/DAppVersion=0.1.${{ github.run_number }}" "/DPublishDir=artifacts\publish" "/DOutputDir=artifacts" installer\Dynamic.iss
+          $publish = Join-Path $env:GITHUB_WORKSPACE "artifacts\publish"
+          $output = Join-Path $env:GITHUB_WORKSPACE "artifacts"
+          & $iscc "/DAppVersion=0.1.${{ github.run_number }}" "/DPublishDir=$publish" "/DOutputDir=$output" installer\Dynamic.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Windows installer
@@ -63,6 +65,16 @@ jobs:
           path: artifacts/publish/
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish installable prerelease
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dynamic-build-${{ github.run_number }}
+          name: Dynamic build 0.1.${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          files: artifacts/Dynamic-Setup-x64.exe
 
       - name: Upload test report
         if: always()
