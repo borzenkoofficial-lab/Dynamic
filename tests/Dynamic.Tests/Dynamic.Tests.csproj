@@ -16,6 +16,6 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\src\Dynamic\Dynamic.csproj" />
+    <ProjectReference Include="..\..\src\Dynamic\Dynamic.csproj" />
   </ItemGroup>
 </Project>
