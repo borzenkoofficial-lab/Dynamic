@@ -69,7 +69,8 @@ public sealed partial class MainWindow : Window
 
         if (distance >= MagneticRadius || distance < 0.5)
         {
-            ApplyMagneticPose(Vector3.Zero, 1.0f);
+            var idleScale = _stateMachine.Target == CapsuleState.Expanded ? 1.045f : 1.0f;
+            ApplyMagneticPose(Vector3.Zero, idleScale);
             return;
         }
 
@@ -80,7 +81,8 @@ public sealed partial class MainWindow : Window
             (float)(dx / distance * pull / _scale),
             (float)(dy / distance * pull * 0.72 / _scale),
             0.0f);
-        var scale = 1.0f + 0.018f * eased;
+        var baseScale = _stateMachine.Target == CapsuleState.Expanded ? 1.045f : 1.0f;
+        var scale = baseScale + 0.018f * eased;
         ApplyMagneticPose(translation, scale);
     }
 
@@ -175,7 +177,6 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        _motion.SetEmphasis(Capsule, expand);
         _stateMachine.CompleteTransition();
     }
 
