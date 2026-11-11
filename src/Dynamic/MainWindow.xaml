@@ -16,6 +16,42 @@
             CornerRadius="38"
             RenderTransformOrigin="0.5,0.5">
             <Grid>
+                <Border x:Name="GlassBase" IsHitTestVisible="False" CornerRadius="38"
+                        BorderThickness="1" BorderBrush="#A6FFFFFF"
+                        Background="#D90B0D11" />
+                <Border x:Name="TopSheen" IsHitTestVisible="False" CornerRadius="38"
+                        Margin="1" VerticalAlignment="Top" Height="34" Opacity="0.72"
+                        Background="{ThemeResource SystemControlAcrylicWindowBrush}">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#42FFFFFF" Offset="0" />
+                            <GradientStop Color="#12FFFFFF" Offset="0.55" />
+                            <GradientStop Color="#00FFFFFF" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+                <Border x:Name="HighlightLayer" IsHitTestVisible="False" CornerRadius="38"
+                        Opacity="0">
+                    <Border.Background>
+                        <RadialGradientBrush x:Name="PointerHighlight" Center="0.5,0.5"
+                                             GradientOrigin="0.5,0.5" RadiusX="0.72" RadiusY="0.9">
+                            <GradientStop Color="#55FFFFFF" Offset="0" />
+                            <GradientStop Color="#18B7F36B" Offset="0.32" />
+                            <GradientStop Color="#00FFFFFF" Offset="1" />
+                        </RadialGradientBrush>
+                    </Border.Background>
+                </Border>
+                <Border x:Name="EdgeGlow" IsHitTestVisible="False" CornerRadius="38"
+                        BorderThickness="1.4" Opacity="0.42">
+                    <Border.BorderBrush>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#BFFFFFFF" Offset="0" />
+                            <GradientStop Color="#30B7F36B" Offset="0.48" />
+                            <GradientStop Color="#70FFFFFF" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.BorderBrush>
+                </Border>
+                <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="38" />
                     <ColumnDefinition Width="*" />
@@ -31,12 +67,16 @@
                                TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <Ellipse Grid.Column="2" Width="7" Height="7" Fill="#B7F36B" VerticalAlignment="Center" Margin="12,0,2,0" />
+                </Grid>
             </Grid>
         </Border>
 
         <Border x:Name="ExpandedPanel" Visibility="Collapsed" Margin="0,88,0,0" Padding="22"
-                VerticalAlignment="Top" Background="#E6101217" BorderBrush="#55FFFFFF"
+                VerticalAlignment="Top" Background="#E6101217" BorderBrush="#75FFFFFF"
                 BorderThickness="1" CornerRadius="28">
+            <Border.Shadow>
+                <ThemeShadow />
+            </Border.Shadow>
             <StackPanel Spacing="16">
                 <Grid>
                     <StackPanel Spacing="3">
@@ -48,14 +88,16 @@
                             CornerRadius="14" Padding="14,7" />
                 </Grid>
 
-                <Border x:Name="MediaCard" Padding="16" Background="#252B34" CornerRadius="20">
+                <Border x:Name="MediaCard" Padding="16" Background="#252B34" CornerRadius="20"
+                        BorderBrush="#28FFFFFF" BorderThickness="1">
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="48" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Border Width="48" Height="48" CornerRadius="13" Background="#3B414D">
+                        <Border x:Name="MediaArtwork" Width="48" Height="48" CornerRadius="13" Background="#3B414D"
+                                BorderBrush="#55FFFFFF" BorderThickness="1">
                             <TextBlock Text="♫" Foreground="#B7F36B" FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
@@ -82,14 +124,14 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <Border Padding="14" Background="#252B34" CornerRadius="18">
+                    <Border x:Name="PlatformCard" Padding="14" Background="#252B34" CornerRadius="18" BorderBrush="#24FFFFFF" BorderThickness="1">
                         <StackPanel Spacing="5">
                             <TextBlock Text="ПЛАТФОРМА" Foreground="#8F9AA8" FontSize="9" CharacterSpacing="100" />
                             <TextBlock Text="Windows" Foreground="#F7F8FA" FontSize="15" FontWeight="SemiBold" />
                             <TextBlock Text="Нативное приложение" Foreground="#AEB6C2" FontSize="11" />
                         </StackPanel>
                     </Border>
-                    <Border Grid.Column="1" Padding="14" Background="#252B34" CornerRadius="18">
+                    <Border x:Name="StatusCard" Grid.Column="1" Padding="14" Background="#252B34" CornerRadius="18" BorderBrush="#24FFFFFF" BorderThickness="1">
                         <StackPanel Spacing="5">
                             <TextBlock Text="СОСТОЯНИЕ" Foreground="#8F9AA8" FontSize="9" CharacterSpacing="100" />
                             <TextBlock Text="Активна" Foreground="#B7F36B" FontSize="15" FontWeight="SemiBold" />
