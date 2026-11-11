@@ -146,6 +146,14 @@
                                      Height="3" Background="#45505D" Foreground="#B7F36B" />
                         <Grid>
                             <TextBlock x:Name="MediaElapsedText" Text="0:00" Foreground="#8F9AA8" FontSize="10" />
+                            <StackPanel x:Name="MediaVisualizer" Orientation="Horizontal" HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" Spacing="3" Visibility="Collapsed">
+                                <Border x:Name="VisualizerBar1" Width="3" Height="7" Background="#B7F36B" CornerRadius="2" />
+                                <Border x:Name="VisualizerBar2" Width="3" Height="11" Background="#B7F36B" CornerRadius="2" />
+                                <Border x:Name="VisualizerBar3" Width="3" Height="6" Background="#B7F36B" CornerRadius="2" />
+                                <Border x:Name="VisualizerBar4" Width="3" Height="9" Background="#B7F36B" CornerRadius="2" />
+                                <Border x:Name="VisualizerBar5" Width="3" Height="5" Background="#B7F36B" CornerRadius="2" />
+                            </StackPanel>
                             <TextBlock x:Name="MediaDurationText" Text="--:--" Foreground="#8F9AA8"
                                        FontSize="10" HorizontalAlignment="Right" />
                         </Grid>
