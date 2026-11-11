@@ -17,14 +17,17 @@ public sealed partial class MainWindow : Window
     private static readonly IntPtr HwndTopmost = new(-1);
     private readonly CapsuleStateMachine _stateMachine = new();
     private readonly CapsuleMotionController _motion = new();
-    private bool _overlayConfigured;
 
     public MainWindow()
     {
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
-        Activated += OnWindowActivated;
         Capsule.PointerPressed += OnCapsulePointerPressed;
+
+        // Configure the HWND before it is shown. This avoids first showing an
+        // ordinary activating window and only then trying to turn it into an overlay.
+        if (!ConfigureOverlayWindow())
+            throw new InvalidOperationException("Dynamic could not initialize its overlay HWND.");
     }
 
     private void OnCapsulePointerPressed(object sender, PointerRoutedEventArgs args)
@@ -32,14 +35,6 @@ public sealed partial class MainWindow : Window
         var expand = _stateMachine.Target != CapsuleState.Expanded;
         _stateMachine.Request(expand ? CapsuleState.Expanded : CapsuleState.Compact);
         _motion.SetEmphasis(Capsule, expand);
-    }
-
-    private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
-    {
-        if (_overlayConfigured)
-            return;
-
-        _overlayConfigured = ConfigureOverlayWindow();
     }
 
     private bool ConfigureOverlayWindow()
