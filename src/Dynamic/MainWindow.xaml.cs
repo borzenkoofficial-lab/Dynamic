@@ -586,7 +586,6 @@ public sealed partial class MainWindow : Window
     {
         const double duration = 0.38;
         var elapsed = _geometryClock.Elapsed.TotalSeconds;
-        var t = Math.Clamp(elapsed / duration, 0, 1);
         var from = new WindowGeometryFrame(_geometryFrom.Left, _geometryFrom.Top,
             _geometryFrom.Right - _geometryFrom.Left, _geometryFrom.Bottom - _geometryFrom.Top,
             _geometryFromRadius);
