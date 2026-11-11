@@ -37,6 +37,9 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SystemBackdrop = new DesktopAcrylicBackdrop();
         Capsule.PointerPressed += OnCapsulePointerPressed;
+        Capsule.PointerEntered += OnCapsulePointerEntered;
+        Capsule.PointerMoved += OnCapsulePointerMoved;
+        Capsule.PointerExited += OnCapsulePointerExited;
         _media.Changed += OnMediaChanged;
         Closed += OnWindowClosed;
         _ = _media.InitializeAsync();
@@ -97,6 +100,37 @@ public sealed partial class MainWindow : Window
         _motion.SetMagneticPose(Capsule, translation, scale);
     }
 
+    private void OnCapsulePointerEntered(object sender, PointerRoutedEventArgs args)
+    {
+        UpdateSurfaceHighlight(args);
+        _motion.SetEmphasis(Capsule, true, 0.012);
+        _motion.FadeOpacity(EdgeGlow, 0.92f, 180);
+    }
+
+    private void OnCapsulePointerMoved(object sender, PointerRoutedEventArgs args)
+    {
+        UpdateSurfaceHighlight(args);
+    }
+
+    private void OnCapsulePointerExited(object sender, PointerRoutedEventArgs args)
+    {
+        PointerHighlight.Center = new Windows.Foundation.Point(0.5, 0.5);
+        _motion.FadeOpacity(HighlightLayer, 0.0f, 260);
+        _motion.FadeOpacity(EdgeGlow, 0.42f, 320);
+    }
+
+    private void UpdateSurfaceHighlight(PointerRoutedEventArgs args)
+    {
+        var point = args.GetCurrentPoint(Capsule).Position;
+        var width = Math.Max(1.0, Capsule.ActualWidth);
+        var height = Math.Max(1.0, Capsule.ActualHeight);
+        PointerHighlight.Center = new Windows.Foundation.Point(
+            Math.Clamp(point.X / width, 0.0, 1.0),
+            Math.Clamp(point.Y / height, 0.0, 1.0));
+        _motion.FadeOpacity(HighlightLayer, 0.92f, 90);
+        _motion.FadeOpacity(EdgeGlow, 0.92f, 120);
+    }
+
     private void OnMediaChanged(object? sender, EventArgs args)
     {
         _dispatcherQueue.TryEnqueue(UpdateMediaUi);
@@ -118,6 +152,8 @@ public sealed partial class MainWindow : Window
 
         CapsuleSubtitle.Text = media.Title;
         MediaTitle.Text = media.Title;
+        _motion.SetEmphasis(MediaArtwork, media.IsPlaying, 0.035);
+        _motion.FadeOpacity(EdgeGlow, media.IsPlaying ? 0.72f : 0.42f, 260);
         MediaArtist.Text = media.Artist;
         PlayPauseButton.Content = media.IsPlaying ? "Ⅱ" : "▶";
         PlayPauseButton.IsEnabled = media.CanTogglePlayback;
@@ -178,6 +214,12 @@ public sealed partial class MainWindow : Window
         }
 
         _stateMachine.CompleteTransition();
+        if (expand)
+        {
+            _motion.Reveal(MediaCard, 1.0f, 280);
+            _motion.Reveal(PlatformCard, 1.0f, 340);
+            _motion.Reveal(StatusCard, 1.0f, 390);
+        }
     }
 
     private bool ConfigureOverlayWindow()
