@@ -17,5 +17,6 @@
   <ItemGroup>
     <Compile Include="..\..\src\Dynamic\Core\WindowGeometryMath.cs" Link="Core\WindowGeometryMath.cs" />
     <Compile Include="..\..\src\Dynamic\Services\CountdownTimerService.cs" Link="Services\CountdownTimerService.cs" />
+    <Compile Include="..\..\src\Dynamic\Services\DynamicSettingsStore.cs" Link="Services\DynamicSettingsStore.cs" />
   </ItemGroup>
 </Project>
