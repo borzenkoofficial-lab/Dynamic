@@ -40,6 +40,8 @@ public sealed class CapsuleMotionController
     {
         ArgumentNullException.ThrowIfNull(target);
         SetCenterPoint(target);
+        var visual = ElementCompositionPreview.GetElementVisual(target);
+        visual.Scale = new Vector3(scale * 0.965f, scale * 0.965f, 1.0f);
         var visualScale = _compositor.CreateSpringVector3Animation();
         visualScale.Target = "Scale";
         visualScale.DampingRatio = 0.82f;
@@ -52,6 +54,32 @@ public sealed class CapsuleMotionController
         opacity.InsertKeyFrame(1.0f, 1.0f);
         opacity.Duration = TimeSpan.FromMilliseconds(Math.Max(1, durationMilliseconds));
         target.StartAnimation("Opacity", opacity);
+    }
+
+    public void SetVisualizer(UIElement[] bars, bool active)
+    {
+        ArgumentNullException.ThrowIfNull(bars);
+        for (var index = 0; index < bars.Length; index++)
+        {
+            var bar = bars[index];
+            var visual = ElementCompositionPreview.GetElementVisual(bar);
+            if (!active)
+            {
+                visual.StopAnimation("Scale.Y");
+                visual.Scale = Vector3.One;
+                continue;
+            }
+
+            visual.CenterPoint = new Vector3((float)(bar.ActualWidth * 0.5), (float)(bar.ActualHeight * 0.5), 0);
+            var animation = _compositor.CreateScalarKeyFrameAnimation();
+            animation.InsertKeyFrame(0.0f, 0.35f + (index % 2) * 0.12f);
+            animation.InsertKeyFrame(0.28f, 0.75f + (index % 3) * 0.24f);
+            animation.InsertKeyFrame(0.58f, 1.35f - (index % 2) * 0.3f);
+            animation.InsertKeyFrame(1.0f, 0.4f + (index % 3) * 0.16f);
+            animation.Duration = TimeSpan.FromMilliseconds(420 + index * 65);
+            animation.IterationBehavior = AnimationIterationBehavior.Forever;
+            visual.StartAnimation("Scale.Y", animation);
+        }
     }
 
     private static void SetCenterPoint(UIElement target)
