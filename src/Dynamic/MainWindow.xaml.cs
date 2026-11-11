@@ -28,6 +28,8 @@ public sealed partial class MainWindow : Window
     private DispatcherQueueTimer? _proximityTimer;
     private IntPtr _hwnd;
     private double _scale = 1.0;
+    private Vector3 _lastMagneticTranslation = new(float.NaN, float.NaN, float.NaN);
+    private float _lastMagneticScale = float.NaN;
 
     public MainWindow()
     {
@@ -67,7 +69,7 @@ public sealed partial class MainWindow : Window
 
         if (distance >= MagneticRadius || distance < 0.5)
         {
-            _motion.SetMagneticPose(Capsule, Vector3.Zero, 1.0f);
+            ApplyMagneticPose(Vector3.Zero, 1.0f);
             return;
         }
 
@@ -79,6 +81,17 @@ public sealed partial class MainWindow : Window
             (float)(dy / distance * pull * 0.72 / _scale),
             0.0f);
         var scale = 1.0f + 0.018f * eased;
+        ApplyMagneticPose(translation, scale);
+    }
+
+    private void ApplyMagneticPose(Vector3 translation, float scale)
+    {
+        var delta = Vector3.Distance(_lastMagneticTranslation, translation);
+        if (delta < 0.35f && Math.Abs(_lastMagneticScale - scale) < 0.001f)
+            return;
+
+        _lastMagneticTranslation = translation;
+        _lastMagneticScale = scale;
         _motion.SetMagneticPose(Capsule, translation, scale);
     }
 
