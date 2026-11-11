@@ -1,5 +1,9 @@
 name: Windows build
 
+concurrency:
+  group: dynamic-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
