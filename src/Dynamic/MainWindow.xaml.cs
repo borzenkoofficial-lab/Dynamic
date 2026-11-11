@@ -275,6 +275,7 @@ public sealed partial class MainWindow : Window
         const double radius = 25;
         const double center = 29;
         if (fraction <= 0.001) { TimerRingProgress.Data = null; return; }
+        fraction = Math.Min(fraction, 0.999);
         var angle = (-90 + 360 * fraction) * Math.PI / 180;
         var figure = new PathFigure
         {
@@ -321,7 +322,12 @@ public sealed partial class MainWindow : Window
     private void UpdateProgressUi()
     {
         var activity = _progress.Current;
-        if (activity is null) { ProgressCard.Visibility = Visibility.Collapsed; return; }
+        if (activity is null)
+        {
+            _lastCompletedActivity = null;
+            ProgressCard.Visibility = Visibility.Collapsed;
+            return;
+        }
         ProgressCard.Visibility = Visibility.Visible;
         ActivityTitle.Text = activity.Title;
         ActivityPercent.Text = $"{activity.Percent:0}%";
@@ -473,7 +479,10 @@ public sealed partial class MainWindow : Window
         if (!ApplyWindowGeometry(geometry))
         {
             _geometryTimer?.Stop();
+            ApplyWindowGeometry(_geometryTarget);
             _stateMachine.CompleteTransition();
+            if (_stateMachine.Target == CapsuleState.Compact)
+                ExpandedPanel.Visibility = Visibility.Collapsed;
             return;
         }
         if (t < 1) return;
