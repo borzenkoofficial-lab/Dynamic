@@ -6,47 +6,69 @@
     <Grid x:Name="Root" Background="Transparent">
         <Border
             x:Name="Capsule"
+            Height="76"
             HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
+            VerticalAlignment="Top"
             Padding="18,10"
-            Background="#B20B0D11"
+            Background="#D90B0D11"
             BorderBrush="#70FFFFFF"
             BorderThickness="1"
             CornerRadius="38"
             RenderTransformOrigin="0.5,0.5">
-            <StackPanel Orientation="Horizontal" Spacing="13" VerticalAlignment="Center">
-                <Border
-                    Width="38"
-                    Height="38"
-                    CornerRadius="13"
-                    Background="#353B46"
-                    VerticalAlignment="Center">
-                    <TextBlock
-                        Text="D"
-                        Foreground="#F7F8FA"
-                        FontSize="20"
-                        FontWeight="SemiBold"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="38" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border Width="38" Height="38" CornerRadius="13" Background="#353B46" VerticalAlignment="Center">
+                    <TextBlock Text="D" Foreground="#F7F8FA" FontSize="20" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
-                <StackPanel VerticalAlignment="Center" Spacing="2">
-                    <TextBlock
-                        Text="DYNAMIC"
-                        Foreground="#F7F8FA"
-                        FontSize="11"
-                        FontWeight="SemiBold"
-                        CharacterSpacing="150" />
-                    <TextBlock
-                        Text="Capsule foundation"
-                        Foreground="#C4CAD3"
-                        FontSize="12" />
+                <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="DYNAMIC" Foreground="#F7F8FA" FontSize="11" FontWeight="SemiBold" CharacterSpacing="150" />
+                    <TextBlock Text="Рабочая капсула" Foreground="#C4CAD3" FontSize="12" />
                 </StackPanel>
-                <Ellipse
-                    Width="7"
-                    Height="7"
-                    Fill="#B7F36B"
-                    VerticalAlignment="Center"
-                    Margin="12,0,2,0" />
+                <Ellipse Grid.Column="2" Width="7" Height="7" Fill="#B7F36B" VerticalAlignment="Center" Margin="12,0,2,0" />
+            </Grid>
+        </Border>
+
+        <Border x:Name="ExpandedPanel" Visibility="Collapsed" Margin="0,88,0,0" Padding="22"
+                VerticalAlignment="Top" Background="#E6101217" BorderBrush="#55FFFFFF"
+                BorderThickness="1" CornerRadius="28">
+            <StackPanel Spacing="16">
+                <Grid>
+                    <StackPanel Spacing="3">
+                        <TextBlock Text="ЦЕНТР DYNAMIC" Foreground="#F7F8FA" FontSize="11" FontWeight="SemiBold" CharacterSpacing="130" />
+                        <TextBlock Text="Системная панель" Foreground="#AEB6C2" FontSize="13" />
+                    </StackPanel>
+                    <Button x:Name="CollapseButton" Content="Свернуть" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Click="OnCollapseClick" Background="#26313B" Foreground="#F7F8FA" BorderThickness="0"
+                            CornerRadius="14" Padding="14,7" />
+                </Grid>
+                <Border Height="1" Background="#30FFFFFF" />
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Padding="14" Background="#252B34" CornerRadius="18">
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="ПЛАТФОРМА" Foreground="#8F9AA8" FontSize="9" CharacterSpacing="100" />
+                            <TextBlock Text="Windows" Foreground="#F7F8FA" FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock Text="Нативное приложение" Foreground="#AEB6C2" FontSize="11" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Padding="14" Background="#252B34" CornerRadius="18">
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="СОСТОЯНИЕ" Foreground="#8F9AA8" FontSize="9" CharacterSpacing="100" />
+                            <TextBlock Text="Активна" Foreground="#B7F36B" FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock Text="Локальный режим" Foreground="#AEB6C2" FontSize="11" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+                <TextBlock Text="Модули уведомлений, медиа и таймера подключаются отдельными системными интеграциями."
+                           Foreground="#8F9AA8" FontSize="11" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
     </Grid>

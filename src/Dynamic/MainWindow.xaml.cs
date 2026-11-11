@@ -16,8 +16,11 @@ public sealed partial class MainWindow : Window
     private const uint SwpNoActivate = 0x0010;
     private const uint SwpShowWindow = 0x0040;
     private static readonly IntPtr HwndTopmost = new(-1);
+
     private readonly CapsuleStateMachine _stateMachine = new();
     private readonly CapsuleMotionController _motion = new();
+    private IntPtr _hwnd;
+    private double _scale = 1.0;
 
     public MainWindow()
     {
@@ -26,16 +29,39 @@ public sealed partial class MainWindow : Window
         SystemBackdrop = new DesktopAcrylicBackdrop();
         Capsule.PointerPressed += OnCapsulePointerPressed;
 
-        // Configure the HWND before it is shown to avoid activating a normal window first.
         if (!ConfigureOverlayWindow())
             throw new InvalidOperationException("Dynamic could not initialize its overlay HWND.");
     }
 
     private void OnCapsulePointerPressed(object sender, PointerRoutedEventArgs args)
     {
-        var expand = _stateMachine.Target != CapsuleState.Expanded;
-        _stateMachine.Request(expand ? CapsuleState.Expanded : CapsuleState.Compact);
+        ToggleExpanded();
+        args.Handled = true;
+    }
+
+    private void OnCollapseClick(object sender, RoutedEventArgs args)
+    {
+        ToggleExpanded(forceCompact: true);
+    }
+
+    private void ToggleExpanded(bool forceCompact = false)
+    {
+        var expand = !forceCompact && _stateMachine.Target != CapsuleState.Expanded;
+        var target = expand ? CapsuleState.Expanded : CapsuleState.Compact;
+        if (!_stateMachine.Request(target))
+            return;
+
+        ExpandedPanel.Visibility = expand ? Visibility.Visible : Visibility.Collapsed;
+
+        if (!ResizeOverlay(expand))
+        {
+            ExpandedPanel.Visibility = expand ? Visibility.Collapsed : Visibility.Visible;
+            _stateMachine.Request(expand ? CapsuleState.Compact : CapsuleState.Expanded);
+            return;
+        }
+
         _motion.SetEmphasis(Capsule, expand);
+        _stateMachine.CompleteTransition();
     }
 
     private bool ConfigureOverlayWindow()
@@ -49,34 +75,44 @@ public sealed partial class MainWindow : Window
         }
         AppWindow.IsShownInSwitchers = false;
 
-        var hwnd = WindowNative.GetWindowHandle(this);
-        if (hwnd == IntPtr.Zero)
+        _hwnd = WindowNative.GetWindowHandle(this);
+        if (_hwnd == IntPtr.Zero)
             return false;
 
-        var style = GetWindowLongPtr(hwnd, GwlExStyle).ToInt64();
+        var style = GetWindowLongPtr(_hwnd, GwlExStyle).ToInt64();
         style |= WsExToolWindow | WsExNoActivate;
-        SetWindowLongPtr(hwnd, GwlExStyle, new IntPtr(style));
+        SetWindowLongPtr(_hwnd, GwlExStyle, new IntPtr(style));
+
+        var dpi = GetDpiForWindow(_hwnd);
+        _scale = dpi == 0 ? 1.0 : dpi / 96.0;
+        return ResizeOverlay(expanded: false);
+    }
+
+    private bool ResizeOverlay(bool expanded)
+    {
+        if (_hwnd == IntPtr.Zero)
+            return false;
 
         var display = DisplayArea.GetFromWindowId(
-            Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd),
+            Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hwnd),
             DisplayAreaFallback.Primary);
 
-        var dpi = GetDpiForWindow(hwnd);
-        var scale = dpi == 0 ? 1.0 : dpi / 96.0;
-        var width = (int)Math.Round(390 * scale);
-        var height = (int)Math.Round(76 * scale);
+        var width = (int)Math.Round((expanded ? 520 : 390) * _scale);
+        var height = (int)Math.Round((expanded ? 236 : 76) * _scale);
+        var topOffset = (int)Math.Round(8 * _scale);
         var work = display.WorkArea;
         var x = work.X + (work.Width - width) / 2;
-        var y = work.Y + (int)Math.Round(8 * scale);
-        if (!SetWindowPos(hwnd, HwndTopmost, x, y, width, height,
-            SwpNoActivate | SwpShowWindow))
+        var y = work.Y + topOffset;
+
+        if (!SetWindowPos(_hwnd, HwndTopmost, x, y, width, height, SwpNoActivate | SwpShowWindow))
             return false;
 
-        var region = CreateRoundRectRgn(0, 0, width + 1, height + 1, height, height);
+        var radius = (int)Math.Round((expanded ? 30 : 38) * _scale);
+        var region = CreateRoundRectRgn(0, 0, width + 1, height + 1, radius * 2, radius * 2);
         if (region == IntPtr.Zero)
             return false;
 
-        if (SetWindowRgn(hwnd, region, true) == 0)
+        if (SetWindowRgn(_hwnd, region, true) == 0)
         {
             DeleteObject(region);
             return false;
