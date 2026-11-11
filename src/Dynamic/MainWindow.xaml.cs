@@ -103,7 +103,6 @@ public sealed partial class MainWindow : Window
     private void OnCapsulePointerEntered(object sender, PointerRoutedEventArgs args)
     {
         UpdateSurfaceHighlight(args);
-        _motion.SetEmphasis(Capsule, true, 0.012);
         _motion.FadeOpacity(EdgeGlow, 0.92f, 180);
     }
 
@@ -127,8 +126,8 @@ public sealed partial class MainWindow : Window
         PointerHighlight.Center = new Windows.Foundation.Point(
             Math.Clamp(point.X / width, 0.0, 1.0),
             Math.Clamp(point.Y / height, 0.0, 1.0));
-        _motion.FadeOpacity(HighlightLayer, 0.92f, 90);
-        _motion.FadeOpacity(EdgeGlow, 0.92f, 120);
+        HighlightLayer.Opacity = 0.92;
+        EdgeGlow.Opacity = 0.92;
     }
 
     private void OnMediaChanged(object? sender, EventArgs args)
