@@ -237,6 +237,21 @@
                         </StackPanel>
                     </Border>
                 </Grid>
+                                <Border x:Name="SettingsCard" Padding="15" Background="#252B34" CornerRadius="20"
+                        BorderBrush="#35FFFFFF" BorderThickness="1">
+                    <StackPanel Spacing="10">
+                        <Grid>
+                            <TextBlock Text="ПРОЗРАЧНОСТЬ СТЕКЛА" Foreground="#8F9AA8"
+                                       FontSize="9" CharacterSpacing="100" />
+                            <TextBlock x:Name="GlassOpacityValue" Text="64%" Foreground="#F7F8FA"
+                                       FontSize="11" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Slider x:Name="GlassOpacitySlider" Minimum="0.35" Maximum="0.92" Value="0.64"
+                                StepFrequency="0.01" ValueChanged="OnGlassOpacityChanged" />
+                        <TextBlock Text="Настройка сохраняется на этом компьютере. Таймер продолжится после перезапуска приложения."
+                                   Foreground="#AEB6C2" FontSize="10" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
                 <TextBlock Text="Системные данные отображаются только при наличии доступного источника."
                            Foreground="#8F9AA8" FontSize="11" TextWrapping="Wrap" />
             </StackPanel>
