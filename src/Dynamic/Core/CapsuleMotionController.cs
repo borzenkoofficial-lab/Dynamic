@@ -1,6 +1,7 @@
 using System.Numerics;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Hosting;
 
 namespace Dynamic.Core;
 
@@ -10,11 +11,11 @@ public sealed class CapsuleMotionController
     private SpringVector3NaturalMotionAnimation? _scaleSpring;
     private SpringVector3NaturalMotionAnimation? _translationSpring;
     private SpringVector3NaturalMotionAnimation? _magneticScaleSpring;
-    private ScalarKeyFrameAnimation? _opacityAnimation;
 
     public void SetEmphasis(UIElement target, bool emphasized, double intensity = 0.08)
     {
         ArgumentNullException.ThrowIfNull(target);
+        SetCenterPoint(target);
 
         _scaleSpring ??= _compositor.CreateSpringVector3Animation();
         _scaleSpring.Target = "Scale";
@@ -38,6 +39,7 @@ public sealed class CapsuleMotionController
     public void Reveal(UIElement target, float scale = 1.0f, int durationMilliseconds = 260)
     {
         ArgumentNullException.ThrowIfNull(target);
+        SetCenterPoint(target);
         var visualScale = _compositor.CreateSpringVector3Animation();
         visualScale.Target = "Scale";
         visualScale.DampingRatio = 0.82f;
@@ -52,9 +54,19 @@ public sealed class CapsuleMotionController
         target.StartAnimation("Opacity", opacity);
     }
 
+    private static void SetCenterPoint(UIElement target)
+    {
+        var visual = ElementCompositionPreview.GetElementVisual(target);
+        visual.CenterPoint = new Vector3(
+            (float)(target.ActualWidth * 0.5),
+            (float)(target.ActualHeight * 0.5),
+            0.0f);
+    }
+
     public void SetMagneticPose(UIElement target, Vector3 translation, float scale)
     {
         ArgumentNullException.ThrowIfNull(target);
+        SetCenterPoint(target);
 
         _translationSpring ??= _compositor.CreateSpringVector3Animation();
         _translationSpring.Target = "Translation";
