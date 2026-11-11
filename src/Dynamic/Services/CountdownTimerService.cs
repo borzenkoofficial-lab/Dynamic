@@ -57,7 +57,7 @@ public sealed class CountdownTimerService
             : null;
         if (snapshot.DeadlineUtc.HasValue && !_deadlineUtc.HasValue)
             _remaining = TimeSpan.Zero;
-        _completionRaised = false;
+        _completionRaised = !snapshot.DeadlineUtc.HasValue && _remaining <= TimeSpan.Zero;
     }
 
     public bool Update()
